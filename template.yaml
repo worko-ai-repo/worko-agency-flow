@@ -65,7 +65,6 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
-          AWS_REGION: !Ref AWS::Region
           AZURE_OPENAI_ENDPOINT: !Ref AzureOpenAIEndpoint
           AZURE_OPENAI_DEPLOYMENT: !Ref AzureOpenAIDeployment
           AZURE_OPENAI_API_KEY: !Ref AzureOpenAIApiKey
