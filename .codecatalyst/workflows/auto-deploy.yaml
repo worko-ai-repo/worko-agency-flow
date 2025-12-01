@@ -22,6 +22,10 @@ Actions:
             echo "=== Building SAM application ==="
             sam build
         - Run: |
+            echo "=== Cleaning up failed stack ==="
+            aws cloudformation delete-stack --stack-name worko-agency-test --region ap-south-1 || true
+            aws cloudformation wait stack-delete-complete --stack-name worko-agency-test --region ap-south-1 || true
+        - Run: |
             echo "=== Deploying to AWS ==="
             sam deploy \
               --stack-name worko-agency-test \
