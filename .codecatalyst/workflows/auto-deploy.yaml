@@ -25,11 +25,11 @@ Actions:
             echo "=== Deploying to AWS ==="
             sam deploy \
               --stack-name worko-agency-test \
+              --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
               --region ap-south-1 \
               --capabilities CAPABILITY_IAM \
               --no-confirm-changeset \
-              --no-fail-on-empty-changeset \
-              --resolve-s3
+              --no-fail-on-empty-changeset
     Environment:
       Name: dev
       Connections:
