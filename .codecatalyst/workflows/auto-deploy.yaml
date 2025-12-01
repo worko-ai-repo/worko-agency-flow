@@ -14,16 +14,22 @@ Actions:
         - WorkflowSource
     Configuration:
       Steps:
-        - Run: sam build
         - Run: |
+            echo "=== Checking SAM version ==="
+            sam --version
+            echo "=== Listing files ==="
+            ls -la
+            echo "=== Building SAM application ==="
+            sam build
+        - Run: |
+            echo "=== Deploying to AWS ==="
             sam deploy \
               --stack-name worko-agency-test \
-              --s3-bucket worko-agency-artifacts \
-              --s3-prefix agency-test \
               --region ap-south-1 \
               --capabilities CAPABILITY_IAM \
               --no-confirm-changeset \
-              --no-fail-on-empty-changeset
+              --no-fail-on-empty-changeset \
+              --resolve-s3
     Environment:
       Name: dev
       Connections:
