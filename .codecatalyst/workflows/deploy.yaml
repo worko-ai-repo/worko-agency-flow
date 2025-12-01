@@ -1,0 +1,25 @@
+Name: DeployAgencyLambda
+SchemaVersion: "1.0"
+
+Triggers:
+  - Type: PUSH
+    Branches:
+      - main
+
+Actions:
+  BuildAndDeploy:
+    Identifier: aws/build@v1
+    Inputs:
+      Sources:
+        - WorkflowSource
+    Configuration:
+      Steps:
+        - Run: sam build --use-container
+        - Run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
+    Environment:
+      Name: dev
+      Connections:
+        - Name: default
+          Role: CodeCatalystWorkflowDevelopmentRole-worko
+    Compute:
+      Type: Lambda
