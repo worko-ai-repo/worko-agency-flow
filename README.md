@@ -1,28 +1,71 @@
 # worko-agency-flow
-* Add a brief paragraph or two that summarizes the purpose and function of this repository.
-* You could add relevant links for the consumers of this repository.
 
-## Usage
-* Define the purpose of the repository if this is going to be a tool, utility, library or a service.
-* Provide the instructions on how to consume this repository for the consumers.
+This folder contains a small test AWS Lambda and a SAM template to deploy it.
 
-## Get Started
-* Provide instructions on how to setup and use this repository for local machine development and testing.
+Files added:
+
+- `template.yaml` — SAM template for the `agency-test-lambda`.
+- `src/lambda_function.py` — simple handler returning JSON metadata.
+- `layers/python-deps/requirements.txt` — dependencies for the Lambda layer.
+- `requirements.txt` — top-level project requirements.
+- `samconfig.toml` — SAM config with Docker container build enabled (required for Windows).
 
 ## Prerequisites
-* Provide list of recommended modules and steps on how to install them.
 
+- **AWS CLI** — install from https://aws.amazon.com/cli/
+- **SAM CLI** — install from https://aws.amazon.com/serverless/sam/
+- **Docker Desktop** — install from https://www.docker.com/ (SAM uses Docker to build Lambda layers on Windows)
+
+## Quick Deploy (Windows with Docker)
+
+The `samconfig.toml` file pre-configures `use_container = true` so that builds run inside Docker containers (required on Windows for Python layer compatibility).
+
+```powershell
+cd C:\Users\Administrator\Desktop\worko_working\worko-workspace\worko-agency-flow
+
+# Build using Docker (Docker Desktop must be running)
+sam build
+
+# Deploy (first time: use --guided to set stack name, S3 bucket, region, etc.)
+sam deploy --guided
+
+# Subsequent deploys (config saved in samconfig.toml):
+sam deploy
 ```
-Setup examples:
-...
+
+After deployment, the stack outputs include `ApiEndpoint` which hosts the `/agency-test` GET endpoint.
+
+## Local Testing
+
+### Prerequisites
+- Docker Desktop running
+- Update `env.json` with your Azure OpenAI credentials
+
+### Quick Test
+```cmd
+test-local.bat
 ```
 
-## Install
-* Provide step-by-step guide on how to get the development environment running.
-* Provide test examples so as to perform a small demo.
+### Manual Testing
+```cmd
+# Build
+sam build
 
-## Testing
-* Provide commands and configuration details on how to test the repository.
+# Test function
+sam local invoke AgencyTestFunction --env-vars env.json
 
-## Contact
-* Provide contact details on how to contact the owners managing this repository.
+# Start local API
+sam local start-api --env-vars env.json
+```
+
+### Test Events
+- `events/initial-event.json` - Test with interview data
+- `events/feedback-event.json` - Test with feedback data
+- `events/completion-event.json` - Test completion flow
+
+## Notes
+
+- **Docker Required:** On Windows, Docker Desktop must be running for `sam build` to work (it builds the layer inside a Docker container).
+- **samconfig.toml:** Pre-configured with `use_container = true`, `region = eu-west-1`, and `stack_name = worko-agency-test`. Modify as needed.
+- **Azure OpenAI Parameters:** Optionally provide during `sam deploy --guided` or leave blank (they're optional).
+- **Layer Dependencies:** The layer packages `requests` from `layers/python-deps/requirements.txt`.

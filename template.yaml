@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Worko Agency Flow - Test Lambda
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+  AzureOpenAIEndpoint:
+    Type: String
+    Description: Azure OpenAI endpoint URL
+    Default: ""
+  AzureOpenAIDeployment:
+    Type: String
+    Description: Azure OpenAI deployment name
+    Default: ""
+  AzureOpenAIApiKey:
+    Type: String
+    NoEcho: true
+    Description: Azure OpenAI API key
+
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 256
+    Runtime: python3.9
+
+Resources:
+  AgencyLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  PythonDependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub "agency-test-deps-${Environment}"
+      Description: Python dependencies for agency test lambda
+      ContentUri: layers/python-deps/
+      CompatibleRuntimes:
+        - python3.9
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: python3.9
+
+  AgencyTestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "agency-test-lambda-${Environment}"
+      CodeUri: src/
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt AgencyLambdaRole.Arn
+      Layers:
+        - !Ref PythonDependenciesLayer
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          AWS_REGION: !Ref AWS::Region
+          AZURE_OPENAI_ENDPOINT: !Ref AzureOpenAIEndpoint
+          AZURE_OPENAI_DEPLOYMENT: !Ref AzureOpenAIDeployment
+          AZURE_OPENAI_API_KEY: !Ref AzureOpenAIApiKey
+      Events:
+        ApiGateway:
+          Type: Api
+          Properties:
+            Path: /agency-test
+            Method: get
+
+Outputs:
+  AgencyTestFunctionArn:
+    Description: Agency Test Lambda Function ARN
+    Value: !GetAtt AgencyTestFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-AgencyTestFunctionArn"
+
+  ApiGatewayEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/agency-test"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiEndpoint"

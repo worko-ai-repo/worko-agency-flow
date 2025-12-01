@@ -1,0 +1,2 @@
+# Project-level requirements (for local tools or testing)
+requests>=2.31.0

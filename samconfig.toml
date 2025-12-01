@@ -1,0 +1,16 @@
+# SAM Configuration - Windows with Docker
+# This config enables container-based builds for cross-platform compatibility
+
+version = 0.1
+
+[default]
+[default.build.parameters]
+use_container = true
+
+[default.deploy.parameters]
+stack_name = "worko-agency-test"
+s3_bucket = "worko-agency-artifacts"
+s3_prefix = "agency-test"
+region = "eu-west-1"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
