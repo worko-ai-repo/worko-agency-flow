@@ -14,12 +14,20 @@ Actions:
         - WorkflowSource
     Configuration:
       Steps:
-        - Run: sam build --use-container
-        - Run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
+        - Run: sam build
+        - Run: |
+            sam deploy \
+              --stack-name worko-agency-test \
+              --s3-bucket worko-agency-artifacts \
+              --s3-prefix agency-test \
+              --region eu-west-1 \
+              --capabilities CAPABILITY_IAM \
+              --no-confirm-changeset \
+              --no-fail-on-empty-changeset
     Environment:
       Name: dev
       Connections:
         - Name: default
           Role: CodeCatalystWorkflowDevelopmentRole-worko
     Compute:
-      Type: Lambda
+      Type: EC2
