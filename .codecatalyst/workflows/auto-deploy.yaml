@@ -20,7 +20,7 @@ Actions:
               --stack-name worko-agency-test \
               --s3-bucket worko-agency-artifacts \
               --s3-prefix agency-test \
-              --region eu-west-1 \
+              --region ap-south-1 \
               --capabilities CAPABILITY_IAM \
               --no-confirm-changeset \
               --no-fail-on-empty-changeset
