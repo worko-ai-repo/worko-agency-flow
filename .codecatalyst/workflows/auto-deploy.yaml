@@ -33,7 +33,6 @@ Actions:
     Environment:
       Name: dev
       Connections:
-        - Name: default
-          Role: CodeCatalystWorkflowDevelopmentRole-worko
+        - Role: CodeCatalystWorkflowDevelopmentRole-worko
     Compute:
       Type: EC2
