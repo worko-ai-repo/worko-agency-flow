@@ -32,7 +32,5 @@ Actions:
               --no-fail-on-empty-changeset
     Environment:
       Name: dev
-      Connections:
-        - Role: CodeCatalystWorkflowDevelopmentRole-worko
     Compute:
       Type: EC2
