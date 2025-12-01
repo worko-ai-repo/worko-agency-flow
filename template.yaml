@@ -68,12 +68,6 @@ Resources:
           AZURE_OPENAI_ENDPOINT: !Ref AzureOpenAIEndpoint
           AZURE_OPENAI_DEPLOYMENT: !Ref AzureOpenAIDeployment
           AZURE_OPENAI_API_KEY: !Ref AzureOpenAIApiKey
-      Events:
-        ApiGateway:
-          Type: Api
-          Properties:
-            Path: /agency-test
-            Method: get
 
 Outputs:
   AgencyTestFunctionArn:
@@ -81,9 +75,3 @@ Outputs:
     Value: !GetAtt AgencyTestFunction.Arn
     Export:
       Name: !Sub "${AWS::StackName}-AgencyTestFunctionArn"
-
-  ApiGatewayEndpoint:
-    Description: API Gateway endpoint URL
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/agency-test"
-    Export:
-      Name: !Sub "${AWS::StackName}-ApiEndpoint"
