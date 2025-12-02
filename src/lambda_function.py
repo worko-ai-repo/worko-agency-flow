@@ -6,6 +6,7 @@ import random
 import os
 # from dotenv import load_dotenv
 # load_dotenv()
+import time
 import json
 from decimal import Decimal
 from typing import List, Tuple, Dict, Any, Optional, Union
@@ -694,8 +695,10 @@ def lambda_handler(event, context):
 
     #get cv pdf from s3
     # if s3_bucket_name=="worko-app-dev":
-    key = cvAwsS3FilePath + cvAwsS3FileName
+    key = cvAwsS3FilePath + '/' + cvAwsS3FileName
     s3_client = boto3.client('s3')
+    print("s3_bucket_name",s3_bucket_name)
+    print("key",key)
     response = s3_client.get_object(Bucket=s3_bucket_name, Key=key)
     processed_text,links_from_pdf = extract_text_from_pdf(response['Body'].read()) # add code for image based cv too
     print(str(processed_text)[:100],"...")
