@@ -649,6 +649,7 @@ def Registered_user_analysis(jobs_id,jdItem,jdItem_extracted,partition_key_value
         
 # def main(evant):
 def lambda_handler(event, context):
+    print("Got event:", event)
     # path = r"agencies/5HWCYGNW71E32A5GY6133TFH8Q/companies/01JWAQF1G96E0SE9XHXSFGHNWW/jobs/01K99Y99X89H2DC588AZJ2J6RV/user-profiles/01K9VHKJS36RQ3P39BZPW2E43Z.pdf" #1
     # path= r"companies/01HZM77Q7XWBW58CH8NF3WFWT2/bulk-cvs/01JJE6VEEGAPH1QNCC7E22118A/01JJE6VEV1JRQ424RMJNXYVEN3.pdf" #3
     # path = r"users/01038d8a-80c1-7018-fd41-bf83638314b4/resumes/01JW1CW2XX2N4THW5376VDX6EB.pdf" #2
