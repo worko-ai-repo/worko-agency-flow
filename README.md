@@ -686,6 +686,321 @@ cat response.json
 
 ---
 
+## 💻 Complete Command Reference (End-to-End)
+
+All commands used during this project setup and deployment:
+
+### Initial Setup Commands
+
+```powershell
+# Navigate to project directory
+cd C:\Users\Administrator\Desktop\worko_working\worko-workspace\worko-agency-flow
+
+# Check git status
+git status
+
+# View project structure
+dir
+dir .codecatalyst\workflows
+```
+
+### Creating Project Structure
+
+```powershell
+# Create directories
+mkdir .codecatalyst
+mkdir .codecatalyst\workflows
+mkdir layers
+mkdir layers\python-deps
+mkdir src
+mkdir events
+
+# Copy files to src directory
+copy lambda_function.py src\
+copy prompts.py src\
+copy utils.py src\
+```
+
+### Git Operations
+
+```powershell
+# Check current branch and status
+git status
+git branch
+
+# View commit history
+git log --oneline -5
+
+# View specific file in git
+git show HEAD:.codecatalyst/workflows/auto-deploy.yaml
+
+# Add files to staging
+git add .
+git add template.yaml
+git add .codecatalyst/workflows/auto-deploy.yaml
+git add README.md
+
+# Commit changes
+git commit -m "Your commit message"
+
+# Push to remote
+git push origin main
+
+# Rename file in git
+git mv .codecatalyst/workflows/deploy.yaml .codecatalyst/workflows/auto-deploy.yaml
+```
+
+### Testing Locally (Without Docker/SAM)
+
+```powershell
+# Test Lambda function directly with Python
+python test_lambda.py
+
+# Run from specific directory
+cd C:\Users\Administrator\Desktop\worko_working\worko-workspace\worko-agency-flow
+python test_lambda.py
+```
+
+### AWS CLI Commands
+
+```powershell
+# Configure AWS credentials
+aws configure
+
+# Check CloudFormation stack status
+aws cloudformation describe-stacks --stack-name worko-agency-test --region ap-south-1
+
+# View stack events
+aws cloudformation describe-stack-events --stack-name worko-agency-test --region ap-south-1
+
+# Delete failed stack manually
+aws cloudformation delete-stack --stack-name worko-agency-test --region ap-south-1
+
+# Wait for stack deletion
+aws cloudformation wait stack-delete-complete --stack-name worko-agency-test --region ap-south-1
+
+# Invoke Lambda function
+aws lambda invoke \
+  --function-name agency-test-lambda-dev \
+  --region ap-south-1 \
+  --payload '{"mode":"initial","email":"test@example.com"}' \
+  response.json
+
+# View Lambda response
+cat response.json
+
+# Tail Lambda logs
+aws logs tail /aws/lambda/agency-test-lambda-dev --follow --region ap-south-1
+
+# List Lambda functions
+aws lambda list-functions --region ap-south-1
+
+# Get Lambda function details
+aws lambda get-function --function-name agency-test-lambda-dev --region ap-south-1
+```
+
+### SAM CLI Commands (If Installed)
+
+```powershell
+# Check SAM version
+sam --version
+
+# Build SAM application
+sam build
+
+# Build with container (for Windows)
+sam build --use-container
+
+# Deploy with guided setup
+sam deploy --guided
+
+# Deploy with parameters
+sam deploy \
+  --stack-name worko-agency-test \
+  --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
+  --region ap-south-1 \
+  --capabilities CAPABILITY_IAM \
+  --no-confirm-changeset \
+  --no-fail-on-empty-changeset
+
+# Deploy with specific config
+sam deploy --config-env default
+
+# Invoke Lambda locally
+sam local invoke AgencyTestFunction --event events/initial-event.json --env-vars env.json
+
+# Start local API
+sam local start-api --env-vars env.json
+
+# View SAM logs
+sam logs -n AgencyTestFunction --stack-name worko-agency-test --tail
+
+# Delete SAM stack
+sam delete --stack-name worko-agency-test --region ap-south-1
+```
+
+### Docker Commands (If Using Docker)
+
+```powershell
+# Check Docker status
+docker --version
+
+# List running containers
+docker ps
+
+# Run Lambda with Docker
+docker run --rm -v %cd%:/var/task amazon/aws-lambda-python:3.9 python lambda_function.py
+```
+
+### File Operations
+
+```powershell
+# View file contents
+type template.yaml
+type .codecatalyst\workflows\auto-deploy.yaml
+type src\lambda_function.py
+
+# List files
+dir /b
+dir .codecatalyst\workflows /b
+
+# Create files
+echo # Test > README.md
+echo "" >> README.md
+
+# Delete files
+del src\requirements.txt
+```
+
+### Debugging Commands
+
+```powershell
+# Check Python version
+python --version
+
+# Check pip version
+pip --version
+
+# List installed packages
+pip list
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Check environment variables
+echo %PATH%
+
+# View current directory
+cd
+pwd
+```
+
+### CodeCatalyst Workflow Triggers
+
+```powershell
+# Any push to main branch triggers deployment
+git add .
+git commit -m "Trigger deployment"
+git push origin main
+
+# Check workflow status in CodeCatalyst UI:
+# 1. Go to CodeCatalyst console
+# 2. Navigate to your project
+# 3. Click CI/CD → Workflows
+# 4. View DeployAgencyLambda workflow runs
+```
+
+### Complete Deployment Flow
+
+```powershell
+# 1. Make changes to code
+code src/lambda_function.py
+
+# 2. Test locally (optional)
+python test_lambda.py
+
+# 3. Add to git
+git add .
+
+# 4. Commit changes
+git commit -m "Update Lambda function"
+
+# 5. Push to trigger deployment
+git push origin main
+
+# 6. Monitor deployment in CodeCatalyst
+# (Check CodeCatalyst UI for logs)
+
+# 7. Verify deployment
+aws lambda get-function --function-name agency-test-lambda-dev --region ap-south-1
+
+# 8. Test deployed Lambda
+aws lambda invoke \
+  --function-name agency-test-lambda-dev \
+  --region ap-south-1 \
+  --payload '{"test":"data"}' \
+  output.json
+
+# 9. View response
+type output.json
+
+# 10. Check logs
+aws logs tail /aws/lambda/agency-test-lambda-dev --follow --region ap-south-1
+```
+
+### Troubleshooting Commands
+
+```powershell
+# If deployment fails, check stack status
+aws cloudformation describe-stacks --stack-name worko-agency-test --region ap-south-1
+
+# View stack events to see what failed
+aws cloudformation describe-stack-events \
+  --stack-name worko-agency-test \
+  --region ap-south-1 \
+  --max-items 20
+
+# If stack is in ROLLBACK_COMPLETE, delete it
+aws cloudformation delete-stack --stack-name worko-agency-test --region ap-south-1
+aws cloudformation wait stack-delete-complete --stack-name worko-agency-test --region ap-south-1
+
+# Then push code again to redeploy
+git commit --allow-empty -m "Retry deployment"
+git push origin main
+
+# Check Lambda function exists
+aws lambda list-functions --region ap-south-1 | findstr agency-test
+
+# Get Lambda configuration
+aws lambda get-function-configuration --function-name agency-test-lambda-dev --region ap-south-1
+
+# View recent Lambda logs
+aws logs tail /aws/lambda/agency-test-lambda-dev --since 10m --region ap-south-1
+```
+
+### Quick Reference: Most Used Commands
+
+```powershell
+# Check status
+git status
+
+# Deploy changes
+git add .
+git commit -m "Your message"
+git push origin main
+
+# Test locally
+python test_lambda.py
+
+# Invoke deployed Lambda
+aws lambda invoke --function-name agency-test-lambda-dev --region ap-south-1 --payload '{"test":"data"}' output.json
+
+# View logs
+aws logs tail /aws/lambda/agency-test-lambda-dev --follow --region ap-south-1
+```
+
+---
+
 ## 📞 Support
 
 If something doesn't work:
@@ -693,6 +1008,7 @@ If something doesn't work:
 2. Check CloudWatch Logs for Lambda errors
 3. Verify AWS credentials and permissions
 4. Review this README for troubleshooting steps
+5. Use the command reference above to debug
 
 ---
 
