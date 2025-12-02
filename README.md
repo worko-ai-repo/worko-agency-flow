@@ -1,6 +1,6 @@
 # Worko Agency Flow - AWS Lambda Deployment
 
-## 📖 The Complete Story: From Zero to Automated Deployment
+## 📖 The Complete Story: From Zero to Automated  Deployment
 
 This project is a simple AWS Lambda function that automatically deploys to AWS whenever you push code to the `main` branch. Let me walk you through everything we learned and how it all works together.
 
