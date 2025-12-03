@@ -55,6 +55,10 @@ This is an **AI Lambda function** that:
 **Issue**: PyMuPDF requires C++ compiler which wasn't available in build environment  
 **Solution**: Removed PyMuPDF and added `--use-container` flag to SAM build for future complex dependencies
 
+### Problem 10: Directory Path Issues in CI/CD
+**Issue**: Build steps couldn't find Lambda directory due to path resolution  
+**Solution**: Added debug commands to verify directory structure and paths during deployment
+
 ---
 
 ## 📁 Project Structure Explained

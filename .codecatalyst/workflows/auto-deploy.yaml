@@ -66,6 +66,8 @@ Actions:
             
             echo "=== Building SAM application ==="
             cd $LAMBDA_DIR
+            pwd
+            ls -la
             sam build --template template.yaml --use-container
             
         - Run: |
@@ -85,6 +87,8 @@ Actions:
             
             echo "=== Deploying to AWS ==="
             cd $LAMBDA_DIR
+            pwd
+            ls -la .aws-sam/build/
             sam deploy \
               --template .aws-sam/build/template.yaml \
               --stack-name $STACK \
