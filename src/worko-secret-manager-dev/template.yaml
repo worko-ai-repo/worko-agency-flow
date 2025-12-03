@@ -10,9 +10,9 @@ Parameters:
 
 Globals:
   Function:
-    Timeout: 60
-    MemorySize: 128
-    Runtime: python3.9
+    Timeout: 180
+    MemorySize: 256
+    Runtime: python3.10
 
 Resources:
   LambdaRole:
@@ -28,7 +28,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-        - PolicyName: SecretsManagerPolicy
+        - PolicyName: LambdaExecutionPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -45,12 +45,12 @@ Resources:
     Properties:
       LayerName: !Sub "worko-secret-manager-deps-${Environment}"
       Description: Python dependencies for worko secret manager lambda
-      ContentUri: requirements.txt
+      ContentUri: ./
       CompatibleRuntimes:
-        - python3.9
+        - python3.10
       RetentionPolicy: Delete
     Metadata:
-      BuildMethod: python3.9
+      BuildMethod: python3.10
 
   LambdaFunction:
     Type: AWS::Serverless::Function

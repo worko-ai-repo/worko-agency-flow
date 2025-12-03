@@ -12,7 +12,7 @@ Globals:
   Function:
     Timeout: 180
     MemorySize: 256
-    Runtime: python3.9
+    Runtime: python3.10
 
 Resources:
   LambdaRole:
@@ -65,10 +65,10 @@ Resources:
       Description: Python dependencies for worko sourcetype JD resume matching lambda
       ContentUri: ./
       CompatibleRuntimes:
-        - python3.9
+        - python3.10
       RetentionPolicy: Delete
     Metadata:
-      BuildMethod: python3.9
+      BuildMethod: python3.10
 
   LambdaFunction:
     Type: AWS::Serverless::Function
