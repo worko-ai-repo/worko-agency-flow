@@ -3,6 +3,10 @@ import boto3
 import os
 from botocore.exceptions import ClientError
 
+def get_sum(a,b,c):
+    return a + b + c
+
+
 def lambda_handler(event, context):
     """
     Worko Secret Manager Lambda Handler
