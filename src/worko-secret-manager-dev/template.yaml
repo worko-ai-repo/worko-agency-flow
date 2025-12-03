@@ -45,7 +45,7 @@ Resources:
     Properties:
       LayerName: !Sub "worko-secret-manager-deps-${Environment}"
       Description: Python dependencies for worko secret manager lambda
-      ContentUri: ./
+      ContentUri: layer/
       CompatibleRuntimes:
         - python3.10
       RetentionPolicy: Delete
