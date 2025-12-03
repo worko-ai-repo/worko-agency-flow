@@ -10,7 +10,7 @@ This project is an AI-powered AWS Lambda function that automatically deploys to 
 
 This is an **AI Lambda function** that:
 - Runs on AWS Lambda (serverless compute)
-- Uses Python 3.10 runtime for AI/ML processing
+- Uses Python 3.9 runtime for AI/ML processing
 - Has external dependencies packaged as a Lambda Layer
 - Automatically deploys via CodeCatalyst CI/CD pipeline
 - Can be invoked directly (no API Gateway needed)
@@ -46,6 +46,14 @@ This is an **AI Lambda function** that:
 ### Problem 7: Invalid CodeCatalyst Connection
 **Issue**: Wrong IAM role name in workflow  
 **Solution**: Removed connection specification to use default
+
+### Problem 8: Python Runtime Mismatch
+**Issue**: Template specified Python 3.10 but build environment had Python 3.9  
+**Solution**: Changed runtime to python3.9 in template.yaml to match build environment
+
+### Problem 9: Complex Dependencies Compilation
+**Issue**: PyMuPDF requires C++ compiler which wasn't available in build environment  
+**Solution**: Removed PyMuPDF and added `--use-container` flag to SAM build for future complex dependencies
 
 ---
 
@@ -149,7 +157,7 @@ cat response.json
 
 ### Local Testing Fails
 - Make sure you're in the project root directory
-- Check Python version: `python --version` (should be 3.10+)
+- Check Python version: `python --version` (should be 3.9+)
 
 ---
 
