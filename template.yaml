@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Worko Agency Flow - Test Lambda
+Description: Worko AI Lambda - Intelligent Processing Function
 
 Parameters:
   Environment:
@@ -61,8 +61,8 @@ Resources:
   PythonDependenciesLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: !Sub "worko-sourcetype-jd-resume-matching-deps-${Environment}"
-      Description: Python dependencies for agency test lambda
+      LayerName: !Sub "worko-ai-lambda-deps-${Environment}"
+      Description: Python dependencies for Worko AI Lambda function
       ContentUri: layers/python-deps/
       CompatibleRuntimes:
         - python3.10
@@ -73,7 +73,7 @@ Resources:
   AgencyTestFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "worko-sourcetype-jd-resume-matching-${Environment}"
+      FunctionName: !Sub "worko-ai-lambda-${Environment}"
       CodeUri: src/
       Handler: lambda_function.lambda_handler
       Role: !GetAtt AgencyLambdaRole.Arn
@@ -93,8 +93,8 @@ Resources:
           AZURE_OPENAI_API_VERSION: "2025-01-01-preview"
 
 Outputs:
-  AgencyTestFunctionArn:
-    Description: Agency Test Lambda Function ARN
+  WorkoAILambdaFunctionArn:
+    Description: Worko AI Lambda Function ARN
     Value: !GetAtt AgencyTestFunction.Arn
     Export:
-      Name: !Sub "${AWS::StackName}-AgencyTestFunctionArn"
+      Name: !Sub "${AWS::StackName}-WorkoAILambdaFunctionArn"

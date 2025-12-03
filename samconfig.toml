@@ -8,9 +8,9 @@ version = 0.1
 use_container = true
 
 [default.deploy.parameters]
-stack_name = "worko-agency-test"
-s3_bucket = "worko-agency-artifacts"
-s3_prefix = "agency-test"
+stack_name = "worko-ai-lambda-test"
+s3_bucket = "worko-ai-lambda-artifacts"
+s3_prefix = "ai-lambda"
 region = "eu-west-1"
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true

@@ -1,4 +1,4 @@
-Name: DeployAgencyLambda
+Name: DeployWorkoAILambda
 SchemaVersion: "1.0"
 
 Triggers:
@@ -23,12 +23,12 @@ Actions:
             sam build
         - Run: |
             echo "=== Cleaning up failed stack ==="
-            aws cloudformation delete-stack --stack-name worko-agency-test --region ap-south-1 || true
-            aws cloudformation wait stack-delete-complete --stack-name worko-agency-test --region ap-south-1 || true
+            aws cloudformation delete-stack --stack-name worko-ai-lambda-test --region ap-south-1 || true
+            aws cloudformation wait stack-delete-complete --stack-name worko-ai-lambda-test --region ap-south-1 || true
         - Run: |
             echo "=== Deploying to AWS ==="
             sam deploy \
-              --stack-name worko-agency-test \
+              --stack-name worko-ai-lambda-test \
               --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
               --region ap-south-1 \
               --capabilities CAPABILITY_IAM \

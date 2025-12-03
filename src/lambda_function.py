@@ -60,7 +60,7 @@ def invoke_model_with_backoff_OpenAI(prompt,Task="Not Specifield" ,max_retries=1
                 raise
 
 def invoke_model_OpenAI(system_content, prompt, want_json=True, max_try_for_json=10):
-    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")     
+    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT")
     api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-05-01-preview")
     api_key = os.getenv("AZURE_OPENAI_API_KEY")
@@ -83,32 +83,40 @@ def invoke_model_OpenAI(system_content, prompt, want_json=True, max_try_for_json
         "temperature": 0.3
     }
 
+    # Always request the response; if caller doesn't want JSON, return the model text safely
+    response = requests.post(url=url, headers=headers, json=data)
+    response.raise_for_status()
+
     if not want_json:
-        response = requests.post(url=url, headers=headers, json=data)
-        response.raise_for_status()
-        result = response.json()
-        return result["choices"][0]["message"]["content"]
+        # try to return the structured JSON field if the response is JSON, otherwise return raw text
+        try:
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+        except ValueError:
+            return response.text
 
-    else:
- 
-        for attempt in range(max_try_for_json):
-            try:
-                response = requests.post(url=url, headers=headers, json=data)
-                response.raise_for_status()
-                result = response.json()
-                content = result["choices"][0]["message"]["content"]
-                content = content.strip().removeprefix("```json").removesuffix("```").strip()
-                return json.loads(content)
-
-            except Exception as e:
-                remaining = max_try_for_json - attempt - 1
-                
-                print(f"JSON parse failed. Retries left: {remaining}")
-                print(content)
-                print("Error:", e)
-                time.sleep(5)
-                if remaining == 0:
-                    raise
+    # want_json == True: try to parse the content into JSON (model may return code-fenced JSON)
+    content = None
+    for attempt in range(max_try_for_json):
+        try:
+            result = response.json()
+            content = result["choices"][0]["message"]["content"]
+            # strip code fences if present
+            content = content.strip()
+            if content.startswith("```json"):
+                content = content[len("```json"):].strip()
+            if content.endswith("```"):
+                content = content[:-3].strip()
+            return json.loads(content)
+        except Exception as e:
+            remaining = max_try_for_json - attempt - 1
+            print(f"JSON parse failed. Retries left: {remaining}")
+            if content is not None:
+                print("Last model content preview:", (content[:400] + "...") if len(content) > 400 else content)
+            print("Error:", e)
+            time.sleep(5)
+            if remaining == 0:
+                raise
              
 def get_scoring_prompts(department,experience):
     if department=="Non-Technical":
@@ -807,7 +815,7 @@ def lambda_handler(event, context):
                     temp_score = 18
             else:
                 # Fallback to original function if there are more steps than defined functions
-                content = invoke_model_with_backoff_OpenAI(prompt,Task= "step 2 for score calculations", want_json=False)
+                content = invoke_model_with_backoff_OpenAI(prompt,Task= "step additon if fails for score calculations", want_json=False)
 
             # If temp_score is coming from the JSON as a list
             if isinstance(temp_score, list) and len(temp_score) > 0:
@@ -887,19 +895,19 @@ def lambda_handler(event, context):
             f"- Omit detail field if heading itself is self-explanatory.\n"
         )
 
-    completion_text_rejection = invoke_model_with_backoff_OpenAI(prompt,Task= "Rejection for 1 <= overall_matching_score < 70:" )
+        completion_text_rejection = invoke_model_with_backoff_OpenAI(prompt,Task= "Rejection for 1 <= overall_matching_score < 70:" )
 
-    completion_text_rejection_for_candidate = completion_text_rejection.get("feedback_Candidate")
-    completion_text_rejection= completion_text_rejection.get("feedback_Recruiter")
-    
+        completion_text_rejection_for_candidate = completion_text_rejection.get("feedback_Candidate")
+        completion_text_rejection= completion_text_rejection.get("feedback_Recruiter")
+        
 
-    completion_text_rejection = json.dumps(completion_text_rejection)        ### make it string again to store in db
-    completion_text_rejection_for_candidate = json.dumps(completion_text_rejection_for_candidate)
+        completion_text_rejection = json.dumps(completion_text_rejection)        ### make it string again to store in db
+        completion_text_rejection_for_candidate = json.dumps(completion_text_rejection_for_candidate)
 
-    print_completion_text(f"rjection feedback for Recruiter {completion_text_rejection}")
-    print_completion_text(f"rjection feedback for Candidate {completion_text_rejection_for_candidate}")
-    rejection_feedback = completion_text_rejection
-    rejectionFeedbackBySystemForApplicant = completion_text_rejection_for_candidate
+        print_completion_text(f"rjection feedback for Recruiter {completion_text_rejection}")
+        print_completion_text(f"rjection feedback for Candidate {completion_text_rejection_for_candidate}")
+        rejection_feedback = completion_text_rejection
+        rejectionFeedbackBySystemForApplicant = completion_text_rejection_for_candidate
 
 
     if overall_matching_score >= 40:

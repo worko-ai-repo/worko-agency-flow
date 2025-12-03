@@ -1,16 +1,16 @@
-# Worko Agency Flow - AWS Lambda Deployment
+# Worko AI Lambda - Intelligent Processing Function
 
 ## 📖 The Complete Story: From Zero to Automated Deployment
 
-This project is a simple AWS Lambda function that automatically deploys to AWS whenever you push code to the `main` branch. Let me walk you through everything we learned and how it all works together.
+This project is an AI-powered AWS Lambda function that automatically deploys to AWS whenever you push code to the `main` branch. Let me walk you through everything we learned and how it all works together.
 
 ---
 
 ## 🎯 What This Project Does
 
-This is a **test Lambda function** that:
+This is an **AI Lambda function** that:
 - Runs on AWS Lambda (serverless compute)
-- Uses Python 3.9 runtime
+- Uses Python 3.10 runtime for AI/ML processing
 - Has external dependencies packaged as a Lambda Layer
 - Automatically deploys via CodeCatalyst CI/CD pipeline
 - Can be invoked directly (no API Gateway needed)
@@ -52,7 +52,7 @@ This is a **test Lambda function** that:
 ## 📁 Project Structure Explained
 
 ```
-worko-agency-flow/
+worko-ai-lambda/
 ├── .codecatalyst/
 │   └── workflows/
 │       └── auto-deploy.yaml      # CI/CD pipeline definition
@@ -519,7 +519,7 @@ print(json.dumps(result, indent=2))
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd worko-agency-flow
+   cd worko-ai-lambda
    ```
 
 2. **Update placeholder values** (when you need Azure OpenAI)
