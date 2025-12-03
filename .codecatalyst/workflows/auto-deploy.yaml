@@ -19,84 +19,101 @@ Actions:
             CHANGED=$(git diff --name-only HEAD~1 HEAD)
             echo "Changed files: $CHANGED"
             
+            DEPLOY_LAMBDAS=""
+            
             if echo "$CHANGED" | grep -q "src/worko-sourcetype-jd-resume-matching-dev/"; then
-              export TEMPLATE="src/worko-sourcetype-jd-resume-matching-dev/template.yaml"
-              export STACK="worko-sourcetype-jd-resume-matching-dev-stack"
-              export LAMBDA_DIR="src/worko-sourcetype-jd-resume-matching-dev"
-              
-            elif echo "$CHANGED" | grep -q "src/worko-bulk-jd-resume-matching/"; then
-              export TEMPLATE="src/worko-bulk-jd-resume-matching/template.yaml"
-              export STACK="worko-bulk-jd-resume-matching-stack"
-              export LAMBDA_DIR="src/worko-bulk-jd-resume-matching"
-              
-            elif echo "$CHANGED" | grep -q "src/worko-jd-resume-matching/"; then
-              export TEMPLATE="src/worko-jd-resume-matching/template.yaml"
-              export STACK="worko-jd-resume-matching-stack"
-              export LAMBDA_DIR="src/worko-jd-resume-matching"
-              
-            elif echo "$CHANGED" | grep -q "src/resume-parser/"; then
-              export TEMPLATE="src/resume-parser/template.yaml"
-              export STACK="resume-parser-stack"
-              export LAMBDA_DIR="src/resume-parser"
-              
-            elif echo "$CHANGED" | grep -q "src/worko-job-description-parser/"; then
-              export TEMPLATE="src/worko-job-description-parser/template.yaml"
-              export STACK="worko-job-description-parser-stack"
-              export LAMBDA_DIR="src/worko-job-description-parser"
-              
-            elif echo "$CHANGED" | grep -q "src/worko-resume-signup-skills-parser/"; then
-              export TEMPLATE="src/worko-resume-signup-skills-parser/template.yaml"
-              export STACK="worko-resume-signup-skills-parser-stack"
-              export LAMBDA_DIR="src/worko-resume-signup-skills-parser"
-              
-            else
+              DEPLOY_LAMBDAS="$DEPLOY_LAMBDAS worko-sourcetype-jd-resume-matching-dev"
+            fi
+            
+            if echo "$CHANGED" | grep -q "src/worko-secret-manager-dev/"; then
+              DEPLOY_LAMBDAS="$DEPLOY_LAMBDAS worko-secret-manager-dev"
+            fi
+            
+            if echo "$CHANGED" | grep -q "src/worko-bulk-jd-resume-matching/"; then
+              DEPLOY_LAMBDAS="$DEPLOY_LAMBDAS worko-bulk-jd-resume-matching"
+            fi
+            
+            if echo "$CHANGED" | grep -q "src/worko-jd-resume-matching/"; then
+              DEPLOY_LAMBDAS="$DEPLOY_LAMBDAS worko-jd-resume-matching"
+            fi
+            
+            if echo "$CHANGED" | grep -q "src/resume-parser/"; then
+              DEPLOY_LAMBDAS="$DEPLOY_LAMBDAS resume-parser"
+            fi
+            
+            if echo "$CHANGED" | grep -q "src/worko-job-description-parser/"; then
+              DEPLOY_LAMBDAS="$DEPLOY_LAMBDAS worko-job-description-parser"
+            fi
+            
+            if echo "$CHANGED" | grep -q "src/worko-resume-signup-skills-parser/"; then
+              DEPLOY_LAMBDAS="$DEPLOY_LAMBDAS worko-resume-signup-skills-parser"
+            fi
+            
+            if [ -z "$DEPLOY_LAMBDAS" ]; then
               echo "No Lambda changed. Skipping deploy."
               exit 0
             fi
             
-            echo "Deploying Lambda: $LAMBDA_DIR"
-            echo "Template: $TEMPLATE"
-            echo "Stack: $STACK"
+            echo "Lambdas to deploy:$DEPLOY_LAMBDAS"
+            export DEPLOY_LAMBDAS
             
         - Run: |
-            if [ -z "$TEMPLATE" ]; then
-              echo "No template to deploy"
+            if [ -z "$DEPLOY_LAMBDAS" ]; then
+              echo "No lambdas to deploy"
               exit 0
             fi
             
-            echo "=== Building SAM application ==="
-            cd $LAMBDA_DIR
-            pwd
-            ls -la
-            sam build --template template.yaml --use-container
+            for lambda in $DEPLOY_LAMBDAS; do
+              echo "=== Building $lambda ==="
+              if [ ! -d "src/$lambda" ]; then
+                echo "ERROR: Directory src/$lambda does not exist. Skipping."
+                continue
+              fi
+              cd src/$lambda
+              pwd
+              ls -la
+              sam build --template template.yaml --use-container
+              cd ../..
+            done
             
         - Run: |
-            if [ -z "$STACK" ]; then
-              echo "No stack to deploy"
+            if [ -z "$DEPLOY_LAMBDAS" ]; then
+              echo "No stacks to clean"
               exit 0
             fi
             
-            echo "=== Cleaning up failed stack ==="
-            aws cloudformation delete-stack --stack-name $STACK --region ap-south-1 || true
-            aws cloudformation wait stack-delete-complete --stack-name $STACK --region ap-south-1 || true
+            for lambda in $DEPLOY_LAMBDAS; do
+              STACK="$lambda-stack"
+              echo "=== Cleaning up failed stack: $STACK ==="
+              aws cloudformation delete-stack --stack-name $STACK --region ap-south-1 || true
+              aws cloudformation wait stack-delete-complete --stack-name $STACK --region ap-south-1 || true
+            done
         - Run: |
-            if [ -z "$STACK" ]; then
-              echo "No stack to deploy"
+            if [ -z "$DEPLOY_LAMBDAS" ]; then
+              echo "No lambdas to deploy"
               exit 0
             fi
             
-            echo "=== Deploying to AWS ==="
-            cd $LAMBDA_DIR
-            pwd
-            ls -la .aws-sam/build/
-            sam deploy \
-              --template .aws-sam/build/template.yaml \
-              --stack-name $STACK \
-              --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
-              --region ap-south-1 \
-              --capabilities CAPABILITY_IAM \
-              --no-confirm-changeset \
-              --no-fail-on-empty-changeset
+            for lambda in $DEPLOY_LAMBDAS; do
+              STACK="$lambda-stack"
+              echo "=== Deploying $lambda to AWS ==="
+              if [ ! -d "src/$lambda" ]; then
+                echo "ERROR: Directory src/$lambda does not exist. Skipping."
+                continue
+              fi
+              cd src/$lambda
+              pwd
+              ls -la .aws-sam/build/
+              sam deploy \
+                --template .aws-sam/build/template.yaml \
+                --stack-name $STACK \
+                --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
+                --region ap-south-1 \
+                --capabilities CAPABILITY_IAM \
+                --no-confirm-changeset \
+                --no-fail-on-empty-changeset
+              cd ../..
+            done
     Environment:
       Name: dev
     Compute:
