@@ -55,9 +55,10 @@ Actions:
             fi
             
             echo "Lambdas to deploy:$DEPLOY_LAMBDAS"
-            export DEPLOY_LAMBDAS
+            echo "$DEPLOY_LAMBDAS" > /tmp/deploy_lambdas.txt
             
         - Run: |
+            DEPLOY_LAMBDAS=$(cat /tmp/deploy_lambdas.txt 2>/dev/null || echo "")
             if [ -z "$DEPLOY_LAMBDAS" ]; then
               echo "No lambdas to deploy"
               exit 0
@@ -77,6 +78,7 @@ Actions:
             done
             
         - Run: |
+            DEPLOY_LAMBDAS=$(cat /tmp/deploy_lambdas.txt 2>/dev/null || echo "")
             if [ -z "$DEPLOY_LAMBDAS" ]; then
               echo "No stacks to clean"
               exit 0
@@ -89,6 +91,7 @@ Actions:
               aws cloudformation wait stack-delete-complete --stack-name $STACK --region ap-south-1 || true
             done
         - Run: |
+            DEPLOY_LAMBDAS=$(cat /tmp/deploy_lambdas.txt 2>/dev/null || echo "")
             if [ -z "$DEPLOY_LAMBDAS" ]; then
               echo "No lambdas to deploy"
               exit 0
