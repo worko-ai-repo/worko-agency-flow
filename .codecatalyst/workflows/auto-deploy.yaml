@@ -19,8 +19,14 @@ Actions:
             aws cloudformation delete-stack --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 || true
             aws cloudformation wait stack-delete-complete --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 || true
         - Run: |
-            echo "=== Building and Deploying ==="
-            cd src/worko-sourcetype-jd-resume-matching-dev
+          echo "=== Building and Deploying ==="
+          # Ensure AWS region is set for CLI/SAM operations in this environment
+          export AWS_REGION=ap-south-1
+          export AWS_DEFAULT_REGION=ap-south-1
+          echo "AWS_REGION=$AWS_REGION"
+          echo "Checking AWS caller identity (will fail if credentials missing)"
+          aws sts get-caller-identity --region $AWS_REGION || true
+          cd src/worko-sourcetype-jd-resume-matching-dev
             sam build --use-container
             echo "Listing build output"
             ls -la .aws-sam/build || true
