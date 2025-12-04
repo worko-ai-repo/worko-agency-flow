@@ -55,15 +55,8 @@ Actions:
             fi
             
             echo "Lambdas to deploy:$DEPLOY_LAMBDAS"
-            echo "$DEPLOY_LAMBDAS" > /tmp/deploy_lambdas.txt
             
-        - Run: |
-            DEPLOY_LAMBDAS=$(cat /tmp/deploy_lambdas.txt 2>/dev/null || echo "")
-            if [ -z "$DEPLOY_LAMBDAS" ]; then
-              echo "No lambdas to deploy"
-              exit 0
-            fi
-            
+            # Build
             for lambda in $DEPLOY_LAMBDAS; do
               echo "=== Building $lambda ==="
               if [ ! -d "src/$lambda" ]; then
@@ -77,26 +70,15 @@ Actions:
               cd ../..
             done
             
-        - Run: |
-            DEPLOY_LAMBDAS=$(cat /tmp/deploy_lambdas.txt 2>/dev/null || echo "")
-            if [ -z "$DEPLOY_LAMBDAS" ]; then
-              echo "No stacks to clean"
-              exit 0
-            fi
-            
+            # Clean stacks
             for lambda in $DEPLOY_LAMBDAS; do
               STACK="$lambda-stack"
               echo "=== Cleaning up failed stack: $STACK ==="
               aws cloudformation delete-stack --stack-name $STACK --region ap-south-1 || true
               aws cloudformation wait stack-delete-complete --stack-name $STACK --region ap-south-1 || true
             done
-        - Run: |
-            DEPLOY_LAMBDAS=$(cat /tmp/deploy_lambdas.txt 2>/dev/null || echo "")
-            if [ -z "$DEPLOY_LAMBDAS" ]; then
-              echo "No lambdas to deploy"
-              exit 0
-            fi
             
+            # Deploy
             for lambda in $DEPLOY_LAMBDAS; do
               STACK="$lambda-stack"
               echo "=== Deploying $lambda to AWS ==="
