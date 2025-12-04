@@ -6,12 +6,16 @@ import random
 import os
 # from dotenv import load_dotenv
 # load_dotenv()
-import time
 import json
 from decimal import Decimal
 from typing import List, Tuple, Dict, Any, Optional, Union
 from boto3.dynamodb.conditions import Key, Attr
 import re
+
+#firstore integration dependencies
+from google.cloud import firestore
+from google.oauth2 import service_account
+from datetime import datetime, timezone
 
 dynamodb = boto3.resource('dynamodb')
 
@@ -60,7 +64,7 @@ def invoke_model_with_backoff_OpenAI(prompt,Task="Not Specifield" ,max_retries=1
                 raise
 
 def invoke_model_OpenAI(system_content, prompt, want_json=True, max_try_for_json=10):
-    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")     
     deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT")
     api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-05-01-preview")
     api_key = os.getenv("AZURE_OPENAI_API_KEY")
@@ -83,40 +87,32 @@ def invoke_model_OpenAI(system_content, prompt, want_json=True, max_try_for_json
         "temperature": 0.3
     }
 
-    # Always request the response; if caller doesn't want JSON, return the model text safely
-    response = requests.post(url=url, headers=headers, json=data)
-    response.raise_for_status()
-
     if not want_json:
-        # try to return the structured JSON field if the response is JSON, otherwise return raw text
-        try:
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
-        except ValueError:
-            return response.text
+        response = requests.post(url=url, headers=headers, json=data)
+        response.raise_for_status()
+        result = response.json()
+        return result["choices"][0]["message"]["content"]
 
-    # want_json == True: try to parse the content into JSON (model may return code-fenced JSON)
-    content = None
-    for attempt in range(max_try_for_json):
-        try:
-            result = response.json()
-            content = result["choices"][0]["message"]["content"]
-            # strip code fences if present
-            content = content.strip()
-            if content.startswith("```json"):
-                content = content[len("```json"):].strip()
-            if content.endswith("```"):
-                content = content[:-3].strip()
-            return json.loads(content)
-        except Exception as e:
-            remaining = max_try_for_json - attempt - 1
-            print(f"JSON parse failed. Retries left: {remaining}")
-            if content is not None:
-                print("Last model content preview:", (content[:400] + "...") if len(content) > 400 else content)
-            print("Error:", e)
-            time.sleep(5)
-            if remaining == 0:
-                raise
+    else:
+ 
+        for attempt in range(max_try_for_json):
+            try:
+                response = requests.post(url=url, headers=headers, json=data)
+                response.raise_for_status()
+                result = response.json()
+                content = result["choices"][0]["message"]["content"]
+                content = content.strip().removeprefix("```json").removesuffix("```").strip()
+                return json.loads(content)
+
+            except Exception as e:
+                remaining = max_try_for_json - attempt - 1
+                
+                print(f"JSON parse failed. Retries left: {remaining}")
+                print(content)
+                print("Error:", e)
+                time.sleep(5)
+                if remaining == 0:
+                    raise
              
 def get_scoring_prompts(department,experience):
     if department=="Non-Technical":
@@ -655,10 +651,75 @@ def Registered_user_analysis(jobs_id,jdItem,jdItem_extracted,partition_key_value
     if reject_on_ctc_or_exp:
         print("check_exp_data :--- ",check_exp_data)
         return reject_on_ctc_or_exp
+
+
+
+class FirestoreManager:
+    def __init__(self):
+        self.db = self._initialize_firestore()
+
+    def _initialize_firestore(self):
+        acc_type = os.get("acc_type")
+        project_id = os.get("project_id")
+        private_key = os.get("private_key")
+        client_email = os.get("client_email")
+        token_uri = os.get("token_uri")
+
+        FIRESTORE_PROJECT_ID ="worko-dev"
+        GCP_DATABASE_NAME="worko-corp-db-dev"
+        # creds_dict = {
+        #     "type": "service_account",
+        #     "project_id": "worko-dev",
+        #     "private_key": "REDACTED_SECRET\n",
+        #     "client_email": "worko-gcp-firestore@worko-dev.iam.gserviceaccount.com",
+        #     "token_uri": "https://oauth2.googleapis.com/token",
+        # }
+        creds_dict = {
+            "type": acc_type,
+            "project_id": project_id,
+            "private_key": private_key,
+            "client_email": client_email,
+            "token_uri": token_uri,
+        }
         
+        credentials = service_account.Credentials.from_service_account_info(creds_dict)
+        db = firestore.Client(project=FIRESTORE_PROJECT_ID, credentials=credentials, database=GCP_DATABASE_NAME)
+        print(f"Firestore initialized successfully for project: {FIRESTORE_PROJECT_ID}, database: {GCP_DATABASE_NAME}")
+        return db
+
+    def update_firestore_document_with_scoring_data(self,collection_name: str, doc_id: str):
+        try:
+            now = datetime.now(timezone.utc).isoformat(timespec='milliseconds')
+
+            doc_ref = self.db.collection(collection_name).document(doc_id)
+            doc_ref.update({
+                'createdAt': now   # store as ISO string
+            })
+            print(f"Updated Firestore document {doc_id} with embedding")
+            return True
+
+        except Exception as e:
+            print(f"Error updating Firestore document {doc_id}: {e}")
+            return False
+
+    def get_document_firstore(self,collection_name,doc_id):
+        doc_ref = self.db.collection(collection_name).document(doc_id)
+        return doc_ref.get().to_dict()
+
+
+collection_name = "agencyUserSubmissions"
+# doc_id= "01KBEV89JRVFRDZCMWT2E3YBES"
+doc_id= "01KBFJZ55KYCWR6K64PQXK4C46"
+Manager = FirestoreManager()
+data = Manager.get_document_firstore(collection_name = collection_name, doc_id= doc_id)
+
+# print("fist get ",get_document_firstore())
+# updated_data = update_firestore_document_with_scoring_data(collection_name = "agencyUserSubmissions", doc_id= "01KBEV89JRVFRDZCMWT2E3YBES")
+# print("updated  get ",get_document_firstore())
+
+
 # def main(evant):
 def lambda_handler(event, context):
-    print("Got event:", event)
     # path = r"agencies/5HWCYGNW71E32A5GY6133TFH8Q/companies/01JWAQF1G96E0SE9XHXSFGHNWW/jobs/01K99Y99X89H2DC588AZJ2J6RV/user-profiles/01K9VHKJS36RQ3P39BZPW2E43Z.pdf" #1
     # path= r"companies/01HZM77Q7XWBW58CH8NF3WFWT2/bulk-cvs/01JJE6VEEGAPH1QNCC7E22118A/01JJE6VEV1JRQ424RMJNXYVEN3.pdf" #3
     # path = r"users/01038d8a-80c1-7018-fd41-bf83638314b4/resumes/01JW1CW2XX2N4THW5376VDX6EB.pdf" #2
@@ -703,10 +764,8 @@ def lambda_handler(event, context):
 
     #get cv pdf from s3
     # if s3_bucket_name=="worko-app-dev":
-    key = cvAwsS3FilePath + '/' + cvAwsS3FileName
+    key = cvAwsS3FilePath + cvAwsS3FileName
     s3_client = boto3.client('s3')
-    print("s3_bucket_name",s3_bucket_name)
-    print("key",key)
     response = s3_client.get_object(Bucket=s3_bucket_name, Key=key)
     processed_text,links_from_pdf = extract_text_from_pdf(response['Body'].read()) # add code for image based cv too
     print(str(processed_text)[:100],"...")
@@ -815,7 +874,7 @@ def lambda_handler(event, context):
                     temp_score = 18
             else:
                 # Fallback to original function if there are more steps than defined functions
-                content = invoke_model_with_backoff_OpenAI(prompt,Task= "step additon if fails for score calculations", want_json=False)
+                content = invoke_model_with_backoff_OpenAI(prompt,Task= "step 2 for score calculations", want_json=False)
 
             # If temp_score is coming from the JSON as a list
             if isinstance(temp_score, list) and len(temp_score) > 0:
@@ -895,19 +954,19 @@ def lambda_handler(event, context):
             f"- Omit detail field if heading itself is self-explanatory.\n"
         )
 
-        completion_text_rejection = invoke_model_with_backoff_OpenAI(prompt,Task= "Rejection for 1 <= overall_matching_score < 70:" )
+    completion_text_rejection = invoke_model_with_backoff_OpenAI(prompt,Task= "Rejection for 1 <= overall_matching_score < 70:" )
 
-        completion_text_rejection_for_candidate = completion_text_rejection.get("feedback_Candidate")
-        completion_text_rejection= completion_text_rejection.get("feedback_Recruiter")
-        
+    completion_text_rejection_for_candidate = completion_text_rejection.get("feedback_Candidate")
+    completion_text_rejection= completion_text_rejection.get("feedback_Recruiter")
+    
 
-        completion_text_rejection = json.dumps(completion_text_rejection)        ### make it string again to store in db
-        completion_text_rejection_for_candidate = json.dumps(completion_text_rejection_for_candidate)
+    completion_text_rejection = json.dumps(completion_text_rejection)        ### make it string again to store in db
+    completion_text_rejection_for_candidate = json.dumps(completion_text_rejection_for_candidate)
 
-        print_completion_text(f"rjection feedback for Recruiter {completion_text_rejection}")
-        print_completion_text(f"rjection feedback for Candidate {completion_text_rejection_for_candidate}")
-        rejection_feedback = completion_text_rejection
-        rejectionFeedbackBySystemForApplicant = completion_text_rejection_for_candidate
+    print_completion_text(f"rjection feedback for Recruiter {completion_text_rejection}")
+    print_completion_text(f"rjection feedback for Candidate {completion_text_rejection_for_candidate}")
+    rejection_feedback = completion_text_rejection
+    rejectionFeedbackBySystemForApplicant = completion_text_rejection_for_candidate
 
 
     if overall_matching_score >= 40:
