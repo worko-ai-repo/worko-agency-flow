@@ -91,7 +91,11 @@ Resources:
           AZURE_OPENAI_DEPLOYMENT: "gpt-4o"
           AZURE_OPENAI_API_KEY: "REDACTED_SECRET"
           AZURE_OPENAI_API_VERSION: "2025-01-01-preview"
-
+          acc_type: "service_account"
+          project_id: "worko-dev"
+          private_key : "REDACTED_SECRET\n"
+          client_email: "worko-gcp-firestore@worko-dev.iam.gserviceaccount.com",
+          token_uri: "https://oauth2.googleapis.com/token",
 Outputs:
   LambdaFunctionArn:
     Description: Worko Sourcetype JD Resume Matching Lambda Function ARN

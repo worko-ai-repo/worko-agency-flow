@@ -12,6 +12,11 @@ from typing import List, Tuple, Dict, Any, Optional, Union
 from boto3.dynamodb.conditions import Key, Attr
 import re
 
+#firstore integration dependencies
+from google.cloud import firestore
+from google.oauth2 import service_account
+from datetime import datetime, timezone
+
 dynamodb = boto3.resource('dynamodb')
 
 def extract_text_from_pdf(pdf_data):
@@ -646,7 +651,74 @@ def Registered_user_analysis(jobs_id,jdItem,jdItem_extracted,partition_key_value
     if reject_on_ctc_or_exp:
         print("check_exp_data :--- ",check_exp_data)
         return reject_on_ctc_or_exp
+
+
+
+class FirestoreManager:
+    def __init__(self):
+        self.db = self._initialize_firestore()
+
+
+    def _initialize_firestore(self):
+        acc_type = os.get("acc_type")
+        project_id = os.get("project_id")
+        private_key = os.get("private_key")
+        client_email = os.get("client_email")
+        token_uri = os.get("token_uri")
+
+        FIRESTORE_PROJECT_ID ="worko-dev"
+        GCP_DATABASE_NAME="worko-corp-db-dev"
+        # creds_dict = {
+        #     "type": "service_account",
+        #     "project_id": "worko-dev",
+        #     "private_key": "REDACTED_SECRET\n",
+        #     "client_email": "worko-gcp-firestore@worko-dev.iam.gserviceaccount.com",
+        #     "token_uri": "https://oauth2.googleapis.com/token",
+        # }
+        creds_dict = {
+            "type": acc_type,
+            "project_id": project_id,
+            "private_key": private_key,
+            "client_email": client_email,
+            "token_uri": token_uri,
+        }
         
+        credentials = service_account.Credentials.from_service_account_info(creds_dict)
+        db = firestore.Client(project=FIRESTORE_PROJECT_ID, credentials=credentials, database=GCP_DATABASE_NAME)
+        print(f"Firestore initialized successfully for project: {FIRESTORE_PROJECT_ID}, database: {GCP_DATABASE_NAME}")
+        return db
+
+    def update_firestore_document_with_scoring_data(self,collection_name: str, doc_id: str):
+        try:
+            now = datetime.now(timezone.utc).isoformat(timespec='milliseconds')
+
+            doc_ref = self.db.collection(collection_name).document(doc_id)
+            doc_ref.update({
+                'createdAt': now   # store as ISO string
+            })
+            print(f"Updated Firestore document {doc_id} with embedding")
+            return True
+
+        except Exception as e:
+            print(f"Error updating Firestore document {doc_id}: {e}")
+            return False
+
+    def get_document_firstore(self,collection_name,doc_id):
+        doc_ref = self.db.collection(collection_name).document(doc_id)
+        return doc_ref.get().to_dict()
+
+
+collection_name = "agencyUserSubmissions"
+# doc_id= "01KBEV89JRVFRDZCMWT2E3YBES"
+doc_id= "01KBFJZ55KYCWR6K64PQXK4C46"
+Manager = FirestoreManager()
+data = Manager.get_document_firstore(collection_name = collection_name, doc_id= doc_id)
+
+# print("fist get ",get_document_firstore())
+# updated_data = update_firestore_document_with_scoring_data(collection_name = "agencyUserSubmissions", doc_id= "01KBEV89JRVFRDZCMWT2E3YBES")
+# print("updated  get ",get_document_firstore())
+
+
 # def main(evant):
 def lambda_handler(event, context):
     # path = r"agencies/5HWCYGNW71E32A5GY6133TFH8Q/companies/01JWAQF1G96E0SE9XHXSFGHNWW/jobs/01K99Y99X89H2DC588AZJ2J6RV/user-profiles/01K9VHKJS36RQ3P39BZPW2E43Z.pdf" #1
