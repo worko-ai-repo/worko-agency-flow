@@ -1,0 +1,45 @@
+Name: DeploySourcetypeJDResumeMatching
+SchemaVersion: "1.0"
+
+Triggers:
+  - Type: PUSH
+    Branches:
+      - main
+    FilesChanged:
+      - src/worko-sourcetype-jd-resume-matching-dev/**
+
+Actions:
+  Deploy:
+    Identifier: aws/build@v1
+    Inputs:
+      Sources:
+        - WorkflowSource
+    Configuration:
+      Steps:
+        - Run: |
+            set -e
+            set -x
+            
+            echo "=== Deploying worko-sourcetype-jd-resume-matching-dev ==="
+            
+            cd src/worko-sourcetype-jd-resume-matching-dev
+            
+            echo "Building Lambda..."
+            sam build --template template.yaml --use-container --debug
+            
+            echo "Deploying to AWS..."
+            sam deploy \
+              --template .aws-sam/build/template.yaml \
+              --stack-name worko-sourcetype-jd-resume-matching-dev-stack \
+              --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
+              --region ap-south-1 \
+              --capabilities CAPABILITY_IAM \
+              --no-confirm-changeset \
+              --no-fail-on-empty-changeset \
+              --debug
+            
+            echo "Deployment completed successfully!"
+    Environment:
+      Name: dev
+    Compute:
+      Type: EC2
