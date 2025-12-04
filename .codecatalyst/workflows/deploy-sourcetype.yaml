@@ -5,8 +5,6 @@ Triggers:
   - Type: PUSH
     Branches:
       - main
-    FilesChanged:
-      - src/worko-sourcetype-jd-resume-matching-dev/**
 
 Actions:
   Deploy:
@@ -19,6 +17,14 @@ Actions:
         - Run: |
             set -e
             set -x
+            
+            echo "=== Checking for changes in worko-sourcetype-jd-resume-matching-dev ==="
+            CHANGED=$(git diff --name-only HEAD~1 HEAD)
+            
+            if ! echo "$CHANGED" | grep -q "src/worko-sourcetype-jd-resume-matching-dev/"; then
+              echo "No changes detected. Skipping deployment."
+              exit 0
+            fi
             
             echo "=== Deploying worko-sourcetype-jd-resume-matching-dev ==="
             
