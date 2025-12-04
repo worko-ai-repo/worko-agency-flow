@@ -1,4 +1,4 @@
-Name: AutoDeploy
+Name: DeploySourcetypeLambda
 SchemaVersion: "1.0"
 
 Triggers:
@@ -15,8 +15,21 @@ Actions:
     Configuration:
       Steps:
         - Run: |
+            echo "=== Checking SAM version ==="
+            sam --version
+            echo "=== Navigating to lambda directory ==="
             cd src/worko-sourcetype-jd-resume-matching-dev
+            echo "=== Listing files ==="
+            ls -la
+            echo "=== Building SAM application ==="
             sam build --use-container
+        - Run: |
+            echo "=== Cleaning up failed stack ==="
+            aws cloudformation delete-stack --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 || true
+            aws cloudformation wait stack-delete-complete --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 || true
+        - Run: |
+            echo "=== Deploying to AWS ==="
+            cd src/worko-sourcetype-jd-resume-matching-dev
             sam deploy \
               --stack-name worko-sourcetype-jd-resume-matching-stack \
               --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
