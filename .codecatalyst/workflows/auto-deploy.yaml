@@ -24,7 +24,10 @@ Actions:
             sam build --use-container
             echo "Listing build output"
             ls -la .aws-sam/build || true
-            sam deploy \
+            echo "Validating built template with CloudFormation and SAM"
+            aws cloudformation validate-template --template-body file://.aws-sam/build/template.yaml --region ap-south-1 || true
+            sam validate --template .aws-sam/build/template.yaml || true
+            sam deploy --debug \
               --template-file .aws-sam/build/template.yaml \
               --stack-name worko-sourcetype-jd-resume-matching-stack \
               --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
