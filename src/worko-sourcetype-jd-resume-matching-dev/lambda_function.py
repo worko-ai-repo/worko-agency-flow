@@ -17,6 +17,7 @@ from google.cloud import firestore
 from google.oauth2 import service_account
 from datetime import datetime, timezone
 
+# Force deployment
 dynamodb = boto3.resource('dynamodb')
 
 def extract_text_from_pdf(pdf_data):
