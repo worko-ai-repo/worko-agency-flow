@@ -31,6 +31,7 @@ Actions:
             echo "=== Deploying to AWS ==="
             cd src/worko-sourcetype-jd-resume-matching-dev
             sam deploy \
+              --template .aws-sam/build/template.yaml \
               --stack-name worko-sourcetype-jd-resume-matching-stack \
               --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
               --region ap-south-1 \
