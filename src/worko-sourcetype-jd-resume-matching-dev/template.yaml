@@ -93,9 +93,9 @@ Resources:
           AZURE_OPENAI_API_VERSION: "2025-01-01-preview"
           acc_type: "service_account"
           project_id: "worko-dev"
-          private_key : "REDACTED_SECRET\n"
-          client_email: "worko-gcp-firestore@worko-dev.iam.gserviceaccount.com",
-          token_uri: "https://oauth2.googleapis.com/token",
+          private_key: "REDACTED_SECRET\n"
+          client_email: "worko-gcp-firestore@worko-dev.iam.gserviceaccount.com"
+          token_uri: "https://oauth2.googleapis.com/token"
 Outputs:
   WorkoAILambdaFunctionArn:
     Description: Worko AI Lambda Function ARN
