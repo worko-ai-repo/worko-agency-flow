@@ -8,7 +8,7 @@ This project is an AI-powered AWS Lambda function that automatically deploys to 
 
 ## 🎯 What This Project Does
 
-This is an **AI Lambda function** that:
+This is an **AI Lambda  function** that:
 - Runs on AWS Lambda (serverless compute)
 - Uses Python 3.9 runtime for AI/ML processing
 - Has external dependencies packaged as a Lambda Layer
