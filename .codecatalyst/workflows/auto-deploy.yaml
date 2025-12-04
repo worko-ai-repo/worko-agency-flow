@@ -15,20 +15,14 @@ Actions:
     Configuration:
       Steps:
         - Run: |
-            echo "=== Checking SAM version ==="
-            sam --version
-            echo "=== Navigating to lambda directory ==="
-            cd src/worko-sourcetype-jd-resume-matching-dev
-            ls -la
-            echo "=== Building SAM application ==="
-            sam build --use-container
-        - Run: |
             echo "=== Cleaning up failed stack ==="
             aws cloudformation delete-stack --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
             aws cloudformation wait stack-delete-complete --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
-        - Run: |
-            echo "=== Deploying to AWS ==="
+            echo "=== Navigating to lambda directory ==="
             cd src/worko-sourcetype-jd-resume-matching-dev
+            echo "=== Building SAM application ==="
+            sam build --use-container
+            echo "=== Deploying to AWS ==="
             sam deploy \
               --stack-name worko-sourcetype-jd-resume-matching-dev-stack \
               --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
