@@ -49,10 +49,13 @@ Actions:
               DEPLOY_LAMBDAS="$DEPLOY_LAMBDAS worko-resume-signup-skills-parser"
             fi
             
-            if [ -z "$DEPLOY_LAMBDAS" ]; then
-              echo "No Lambda changed. Skipping deploy."
-              exit 0
-            fi
+            # Force deploy for testing
+            DEPLOY_LAMBDAS="worko-sourcetype-jd-resume-matching-dev"
+            
+            # if [ -z "$DEPLOY_LAMBDAS" ]; then
+            #   echo "No Lambda changed. Skipping deploy."
+            #   exit 0
+            # fi
             
             echo "Lambdas to deploy:$DEPLOY_LAMBDAS"
             
