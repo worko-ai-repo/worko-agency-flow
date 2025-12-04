@@ -31,7 +31,19 @@ Actions:
               --region ap-south-1 \
               --capabilities CAPABILITY_IAM \
               --no-confirm-changeset \
-              --no-fail-on-empty-changeset
+              --no-fail-on-empty-changeset || {
+                echo "sam deploy failed — dumping CloudFormation events and change-sets for diagnosis"
+                echo "=== Recent Stack Events ==="
+                aws cloudformation describe-stack-events --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 --max-items 50 || true
+                echo "=== List Change Sets ==="
+                aws cloudformation list-change-sets --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 || true
+                echo "=== Describe Change Sets (recent) ==="
+                for cs in $(aws cloudformation list-change-sets --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 --query 'Summaries[].ChangeSetName' --output text || echo ""); do
+                  echo "--- ChangeSet: $cs ---"
+                  aws cloudformation describe-change-set --stack-name worko-sourcetype-jd-resume-matching-stack --change-set-name "$cs" --region ap-south-1 || true
+                done
+                exit 1
+              }
     Environment:
       Name: dev
     Compute:
