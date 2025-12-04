@@ -36,11 +36,7 @@ Resources:
                 Action:
                   - s3:GetObject
                   - s3:ListBucket
-                Resource:
-                  - arn:aws:s3:::worko-app-dev/*
-                  - arn:aws:s3:::worko-app-dev
-                  - arn:aws:s3:::worko-s3-vector-bucket/*
-                  - arn:aws:s3:::worko-s3-vector-bucket
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - dynamodb:Query
@@ -48,11 +44,7 @@ Resources:
                   - dynamodb:PutItem
                   - dynamodb:UpdateItem
                   - dynamodb:Scan
-                Resource:
-                  - arn:aws:dynamodb:ap-south-1:*:table/worko
-                  - arn:aws:dynamodb:ap-south-1:*:table/worko/index/*
-                  - arn:aws:dynamodb:ap-south-1:*:table/worko-job-app
-                  - arn:aws:dynamodb:ap-south-1:*:table/worko-job-app/index/*
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - bedrock:InvokeModel
