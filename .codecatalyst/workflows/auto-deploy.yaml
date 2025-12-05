@@ -16,12 +16,36 @@ Actions:
       Steps:
         - Run: |
             echo "=== Cleaning up existing resources ==="
-            echo "Deleting old CloudFormation stack (worko-agency-test)..."
-            aws cloudformation delete-stack --stack-name worko-agency-test --region ap-south-1 || true
-            aws cloudformation wait stack-delete-complete --stack-name worko-agency-test --region ap-south-1 || true
-            echo "Deleting target CloudFormation stack if exists..."
-            aws cloudformation delete-stack --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
-            aws cloudformation wait stack-delete-complete --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
+            
+            # Check if Lambda exists and find its stack
+            LAMBDA_ARN=$(aws lambda get-function --function-name worko-sourcetype-jd-resume-matching-dev --region ap-south-1 --query 'Configuration.FunctionArn' --output text 2>/dev/null || echo "")
+            
+            if [ ! -z "$LAMBDA_ARN" ]; then
+              echo "Lambda function exists: $LAMBDA_ARN"
+              
+              # Try to find which stack owns it
+              OWNER_STACK=$(aws cloudformation describe-stack-resources --physical-resource-id worko-sourcetype-jd-resume-matching-dev --region ap-south-1 --query 'StackResources[0].StackName' --output text 2>/dev/null || echo "")
+              
+              if [ ! -z "$OWNER_STACK" ] && [ "$OWNER_STACK" != "None" ]; then
+                echo "Lambda is managed by stack: $OWNER_STACK"
+                echo "Deleting stack: $OWNER_STACK"
+                aws cloudformation delete-stack --stack-name "$OWNER_STACK" --region ap-south-1
+                aws cloudformation wait stack-delete-complete --stack-name "$OWNER_STACK" --region ap-south-1 || true
+              else
+                echo "Lambda is not managed by CloudFormation, deleting manually"
+                aws lambda delete-function --function-name worko-sourcetype-jd-resume-matching-dev --region ap-south-1 || true
+              fi
+            else
+              echo "Lambda function does not exist"
+            fi
+            
+            # Delete target stack if it exists
+            if aws cloudformation describe-stacks --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 2>/dev/null; then
+              echo "Deleting target stack: worko-sourcetype-jd-resume-matching-dev-stack"
+              aws cloudformation delete-stack --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1
+              aws cloudformation wait stack-delete-complete --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
+            fi
+            
             echo "Cleanup completed"
         - Run: |
             echo "=== Building and Deploying ==="
@@ -112,21 +136,6 @@ Actions:
               echo ""
               echo "=== Fetching CloudFormation Stack Events ==="
               aws cloudformation describe-stack-events --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 --max-items 20 || true
-              echo ""
-              echo "=== Fetching Change Sets ==="
-              aws cloudformation list-change-sets --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
-              echo ""
-              echo "=== Describing Latest Change Set ==="
-              LATEST_CS=$(aws cloudformation list-change-sets --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 --query 'Summaries[0].ChangeSetName' --output text 2>/dev/null || echo "")
-              if [ ! -z "$LATEST_CS" ] && [ "$LATEST_CS" != "None" ]; then
-                aws cloudformation describe-change-set --stack-name worko-sourcetype-jd-resume-matching-dev-stack --change-set-name "$LATEST_CS" --region ap-south-1 || true
-              fi
-              echo ""
-              echo "=== Checking CloudFormation Hooks ==="
-              aws cloudformation list-types --type HOOK --visibility PUBLIC --region ap-south-1 --max-results 10 || true
-              echo ""
-              echo "=== Checking Stack Policy ==="
-              aws cloudformation get-stack-policy --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || echo "No stack policy found"
               exit 1
             fi
             echo ""

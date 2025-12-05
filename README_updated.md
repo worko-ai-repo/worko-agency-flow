@@ -59,6 +59,51 @@ This is an **AI Lambda  function** that:
 **Issue**: Build steps couldn't find Lambda directory due to path resolution  
 **Solution**: Added debug commands to verify directory structure and paths during deployment
 
+### Problem 11: Lambda Function Name Conflict
+**Issue**: `worko-sourcetype-jd-resume-matching-dev` already exists in another stack (`worko-agency-test`)  
+**Error**: `CREATE_FAILED: worko-sourcetype-jd-resume-matching-dev already exists in stack`  
+**Root Cause**: CloudFormation doesn't allow same resource name across different stacks  
+**Solution**: Added intelligent cleanup that:
+- Checks if Lambda exists
+- Finds which stack owns it using `describe-stack-resources`
+- Deletes the owning stack (not just the Lambda)
+- Handles both CloudFormation-managed and manually created Lambdas
+
+### Problem 12: Cleanup Strategy for Mixed Resources
+**Issue**: Resources could be created manually OR via different CloudFormation stacks  
+**Challenge**: Need to handle both scenarios without failing  
+**Solution**: Created smart cleanup logic:
+```bash
+# 1. Check if Lambda exists
+# 2. Find owning stack (if any)
+# 3. Delete stack if CloudFormation-managed
+# 4. Delete manually if not stack-managed
+# 5. Clean up target stack separately
+```
+
+### Problem 13: Stack Deletion Race Conditions
+**Issue**: Trying to create resources while old stack still deleting  
+**Solution**: Added `wait stack-delete-complete` to ensure cleanup finishes before deployment
+
+### Problem 14: Layer Version Conflicts
+**Issue**: Layer `worko-sourcetype-jd-resume-matching-deps-dev` had multiple versions  
+**Learning**: Lambda layers are versioned - new deployments create new versions automatically  
+**Solution**: No action needed - CloudFormation handles versioning
+
+### Problem 15: Rollback Behavior with `--on-failure DELETE`
+**Issue**: Stack goes to ROLLBACK_COMPLETE then gets deleted automatically  
+**Learning**: `--on-failure DELETE` removes failed stacks but takes time  
+**Solution**: Cleanup step handles both ROLLBACK_COMPLETE and deleted stacks
+
+### 🎓 Key Takeaways
+
+1. **Always check resource ownership** - Use `describe-stack-resources` to find which stack owns a resource
+2. **Clean up properly** - Delete stacks, not individual resources managed by CloudFormation
+3. **Handle both scenarios** - Resources can be manual or stack-managed
+4. **Wait for completion** - Use `wait` commands to avoid race conditions
+5. **Debug extensively** - Add logging at every step to understand failures
+6. **Use containers for builds** - `--use-container` ensures consistent dependency compilation
+
 ---
 
 ## 📁 Project Structure Explained
