@@ -43,6 +43,7 @@ Actions:
               --region ap-south-1 \
               --capabilities CAPABILITY_IAM \
               --parameter-overrides Environment=dev \
+              --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
               --no-confirm-changeset \
               --no-fail-on-empty-changeset || {
                 echo "sam deploy failed - dumping CloudFormation events for diagnosis"
