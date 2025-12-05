@@ -103,6 +103,12 @@ Actions:
               if [ ! -z "$LATEST_CS" ] && [ "$LATEST_CS" != "None" ]; then
                 aws cloudformation describe-change-set --stack-name worko-sourcetype-jd-resume-matching-dev-stack --change-set-name "$LATEST_CS" --region ap-south-1 || true
               fi
+              echo ""
+              echo "=== Checking CloudFormation Hooks ==="
+              aws cloudformation list-types --type HOOK --visibility PUBLIC --region ap-south-1 --max-results 10 || true
+              echo ""
+              echo "=== Checking Stack Policy ==="
+              aws cloudformation get-stack-policy --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || echo "No stack policy found"
               exit 1
             fi
             echo ""
