@@ -26,9 +26,6 @@ Actions:
             echo "Checking AWS caller identity"
             aws sts get-caller-identity --region $AWS_REGION || true
             cd src/worko-sourcetype-jd-resume-matching-dev
-            echo "Installing layer dependencies"
-            mkdir -p layer/python
-            pip install -r layer/requirements.txt -t layer/python/
             echo "Building SAM application"
             sam build --use-container
             echo "Listing build output"
