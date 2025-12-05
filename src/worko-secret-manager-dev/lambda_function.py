@@ -14,6 +14,8 @@ def lambda_handler(event, context):
     Operations:
     1. CREATE: Create/update secret in AWS Secrets Manager
     2. GET: Retrieve secret from AWS Secrets Manager
+    
+    Deployed via CodeCatalyst CI/CD
     """
     
     try:
