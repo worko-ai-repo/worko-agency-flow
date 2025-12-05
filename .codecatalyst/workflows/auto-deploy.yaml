@@ -15,9 +15,13 @@ Actions:
     Configuration:
       Steps:
         - Run: |
-            echo "=== Cleaning up failed stack ==="
+            echo "=== Cleaning up existing resources ==="
+            echo "Deleting existing Lambda function..."
+            aws lambda delete-function --function-name worko-sourcetype-jd-resume-matching-dev --region ap-south-1 || echo "Lambda function does not exist or already deleted"
+            echo "Deleting failed CloudFormation stack..."
             aws cloudformation delete-stack --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
             aws cloudformation wait stack-delete-complete --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
+            echo "Cleanup completed"
         - Run: |
             echo "=== Building and Deploying ==="
             export AWS_REGION=ap-south-1
@@ -25,6 +29,19 @@ Actions:
             echo "AWS_REGION=$AWS_REGION"
             echo "Checking AWS caller identity"
             aws sts get-caller-identity --region $AWS_REGION || true
+            echo ""
+            echo "========================================"
+            echo "PRE-CHECK: Verifying no resource conflicts"
+            echo "========================================"
+            echo "Checking if Lambda function exists..."
+            aws lambda get-function --function-name worko-sourcetype-jd-resume-matching-dev --region ap-south-1 2>&1 || echo "Lambda does not exist (OK)"
+            echo ""
+            echo "Checking if IAM role exists..."
+            aws iam get-role --role-name worko-sourcetype-jd-resume-matching-dev-stack-AgencyLambdaRole --region ap-south-1 2>&1 || echo "IAM role does not exist (OK)"
+            echo ""
+            echo "Checking if Layer exists..."
+            aws lambda list-layer-versions --layer-name worko-sourcetype-jd-resume-matching-deps-dev --region ap-south-1 2>&1 || echo "Layer does not exist (OK)"
+            echo ""
             cd src/worko-sourcetype-jd-resume-matching-dev
             echo "========================================"
             echo "STEP 1: Verifying directory structure"
