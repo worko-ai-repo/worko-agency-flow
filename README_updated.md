@@ -15,7 +15,7 @@ This is an **AI Lambda  function** that:
 - Automatically deploys via CodeCatalyst CI/CD pipeline
 - Can be invoked directly (no API Gateway needed)
 
----
+--  -
 
 ## 📚 Lessons Learned: Trial and Error Journey
 
