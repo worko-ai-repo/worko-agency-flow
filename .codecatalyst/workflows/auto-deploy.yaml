@@ -81,6 +81,7 @@ Actions:
               --capabilities CAPABILITY_IAM \
               --parameter-overrides Environment=dev \
               --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
+              --on-failure DELETE \
               --no-confirm-changeset \
               --no-fail-on-empty-changeset
             DEPLOY_EXIT_CODE=$?
