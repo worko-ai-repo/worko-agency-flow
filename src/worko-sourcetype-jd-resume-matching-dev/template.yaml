@@ -49,12 +49,6 @@ Resources:
                 Action:
                   - bedrock:InvokeModel
                 Resource: "*"
-              - Effect: Allow
-                Action:
-                  - ssm:GetParameter
-                  - ssm:GetParameters
-                Resource: 
-                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/worko/*"
 
   PythonDependenciesLayer:
     Type: AWS::Serverless::LayerVersion
