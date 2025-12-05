@@ -5,6 +5,8 @@ Triggers:
   - Type: PUSH
     Branches:
       - main
+    FilePaths:
+      - src/worko-sourcetype-jd-resume-matching-dev
 
 
 Actions:
