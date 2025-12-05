@@ -16,41 +16,40 @@ Actions:
       Steps:
         - Run: |
             echo "=== Cleaning up failed stack ==="
-            aws cloudformation delete-stack --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 || true
-            aws cloudformation wait stack-delete-complete --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 || true
+            aws cloudformation delete-stack --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
+            aws cloudformation wait stack-delete-complete --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
         - Run: |
-          echo "=== Building and Deploying ==="
-          # Ensure AWS region is set for CLI/SAM operations in this environment
-          export AWS_REGION=ap-south-1
-          export AWS_DEFAULT_REGION=ap-south-1
-          echo "AWS_REGION=$AWS_REGION"
-          echo "Checking AWS caller identity (will fail if credentials missing)"
-          aws sts get-caller-identity --region $AWS_REGION || true
-          cd src/worko-sourcetype-jd-resume-matching-dev
+            echo "=== Building and Deploying ==="
+            export AWS_REGION=ap-south-1
+            export AWS_DEFAULT_REGION=ap-south-1
+            echo "AWS_REGION=$AWS_REGION"
+            echo "Checking AWS caller identity"
+            aws sts get-caller-identity --region $AWS_REGION || true
+            cd src/worko-sourcetype-jd-resume-matching-dev
+            echo "Installing layer dependencies"
+            mkdir -p layer/python
+            pip install -r layer/requirements.txt -t layer/python/
+            echo "Building SAM application"
             sam build --use-container
             echo "Listing build output"
             ls -la .aws-sam/build || true
-            echo "Validating built template with CloudFormation and SAM"
+            echo "Validating template"
             aws cloudformation validate-template --template-body file://.aws-sam/build/template.yaml --region ap-south-1 || true
             sam validate --template .aws-sam/build/template.yaml || true
+            echo "Deploying to CloudFormation"
             sam deploy --debug \
               --template-file .aws-sam/build/template.yaml \
-              --stack-name worko-sourcetype-jd-resume-matching-stack \
-              --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
+              --stack-name worko-sourcetype-jd-resume-matching-dev-stack \
               --region ap-south-1 \
               --capabilities CAPABILITY_IAM \
+              --parameter-overrides Environment=dev \
               --no-confirm-changeset \
               --no-fail-on-empty-changeset || {
-                echo "sam deploy failed — dumping CloudFormation events and change-sets for diagnosis"
+                echo "sam deploy failed - dumping CloudFormation events for diagnosis"
                 echo "=== Recent Stack Events ==="
-                aws cloudformation describe-stack-events --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 --max-items 50 || true
+                aws cloudformation describe-stack-events --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 --max-items 50 || true
                 echo "=== List Change Sets ==="
-                aws cloudformation list-change-sets --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 || true
-                echo "=== Describe Change Sets (recent) ==="
-                for cs in $(aws cloudformation list-change-sets --stack-name worko-sourcetype-jd-resume-matching-stack --region ap-south-1 --query 'Summaries[].ChangeSetName' --output text || echo ""); do
-                  echo "--- ChangeSet: $cs ---"
-                  aws cloudformation describe-change-set --stack-name worko-sourcetype-jd-resume-matching-stack --change-set-name "$cs" --region ap-south-1 || true
-                done
+                aws cloudformation list-change-sets --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
                 exit 1
               }
     Environment:

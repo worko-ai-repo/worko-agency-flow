@@ -4,20 +4,19 @@ from prompts import *
 import requests
 import random
 import os
-
+# from dotenv import load_dotenv
+# load_dotenv()
+import time
 import json
 from decimal import Decimal
 from typing import List, Tuple, Dict, Any, Optional, Union
 from boto3.dynamodb.conditions import Key, Attr
 import re
-
-#firstore integration dependencies
+# adding changes to test
+dynamodb = boto3.resource('dynamodb')
 from google.cloud import firestore
 from google.oauth2 import service_account
 from datetime import datetime, timezone
-
-# Force deployment
-dynamodb = boto3.resource('dynamodb')
 
 def extract_text_from_pdf(pdf_data):
     text = ""
@@ -652,48 +651,63 @@ def Registered_user_analysis(jobs_id,jdItem,jdItem_extracted,partition_key_value
         print("check_exp_data :--- ",check_exp_data)
         return reject_on_ctc_or_exp
 
-
-
 class FirestoreManager:
     def __init__(self):
         self.db = self._initialize_firestore()
 
     def _initialize_firestore(self):
-        acc_type = os.get("acc_type")
-        project_id = os.get("project_id")
-        private_key = os.get("private_key")
-        client_email = os.get("client_email")
-        token_uri = os.get("token_uri")
+        acc_type = os.getenv("acc_type")
+        project_id = os.getenv("project_id")
+        private_key = os.getenv("private_key")
+        client_email = os.getenv("client_email")
+        token_uri = os.getenv("token_uri")
+        private_key = private_key.replace('\\n', '\n')
 
         FIRESTORE_PROJECT_ID ="worko-dev"
         GCP_DATABASE_NAME="worko-corp-db-dev"
-        # creds_dict = {
-        #     "type": "service_account",
-        #     "project_id": "worko-dev",
-        #     "private_key": "REDACTED_SECRET\n",
-        #     "client_email": "worko-gcp-firestore@worko-dev.iam.gserviceaccount.com",
-        #     "token_uri": "https://oauth2.googleapis.com/token",
-        # }
         creds_dict = {
-            "type": acc_type,
-            "project_id": project_id,
-            "private_key": private_key,
-            "client_email": client_email,
-            "token_uri": token_uri,
+            "type": "service_account",
+            "project_id": "worko-dev",
+            "private_key": "REDACTED_SECRET\n",
+            "client_email": "worko-gcp-firestore@worko-dev.iam.gserviceaccount.com",
+            "token_uri": "https://oauth2.googleapis.com/token",
         }
+        # creds_dict = {
+        #     "type": acc_type,
+        #     "project_id": project_id,
+        #     "private_key": private_key,
+        #     "client_email": client_email,
+        #     "token_uri": token_uri,
+        # }
         
         credentials = service_account.Credentials.from_service_account_info(creds_dict)
         db = firestore.Client(project=FIRESTORE_PROJECT_ID, credentials=credentials, database=GCP_DATABASE_NAME)
         print(f"Firestore initialized successfully for project: {FIRESTORE_PROJECT_ID}, database: {GCP_DATABASE_NAME}")
         return db
 
-    def update_firestore_document_with_scoring_data(self,collection_name: str, doc_id: str):
-        try:
-            now = datetime.now(timezone.utc).isoformat(timespec='milliseconds')
+    def update_firestore_document_with_scoring_data(self,collection_name: str, doc_id: str,update_data):
 
+
+
+        try:
+            # rejectionFeedbackBySystemForApplicant = update_data.get("rejectionFeedbackBySystemForApplicant")
+            # scoreDetailsForApplicant = update_data.get("scoreDetailsForApplicant")
+            # scoreDetails = update_data.get("scoreDetails")
+            # emailFeedback = update_data.get("emailFeedback")
+            # matchingScoreDetails = update_data.get("matchingScoreDetails")
+            # now = datetime.now(timezone.utc).isoformat(timespec='milliseconds')
+
+
+            # "rejectionFeedbackBySystemForApplicant":rejectionFeedbackBySystemForApplicant,
+            # "scoreDetailsForApplicant":scoreDetailsForApplicant,
+            # "scoreDetails":scoreDetails,
+            # "emailFeedback":emailFeedback,
             doc_ref = self.db.collection(collection_name).document(doc_id)
             doc_ref.update({
-                'createdAt': now   # store as ISO string
+                  # store as ISO string
+
+                "matchingScoreDetails" : update_data
+
             })
             print(f"Updated Firestore document {doc_id} with embedding")
             return True
@@ -707,25 +721,15 @@ class FirestoreManager:
         return doc_ref.get().to_dict()
 
 
-collection_name = "agencyUserSubmissions"
-# doc_id= "01KBEV89JRVFRDZCMWT2E3YBES"
-doc_id= "01KBFJZ55KYCWR6K64PQXK4C46"
-Manager = FirestoreManager()
-data = Manager.get_document_firstore(collection_name = collection_name, doc_id= doc_id)
-
-# print("fist get ",get_document_firstore())
-# updated_data = update_firestore_document_with_scoring_data(collection_name = "agencyUserSubmissions", doc_id= "01KBEV89JRVFRDZCMWT2E3YBES")
-# print("updated  get ",get_document_firstore())
-
-
 # def main(evant):
 def lambda_handler(event, context):
+    print("Got event:", event)
     # path = r"agencies/5HWCYGNW71E32A5GY6133TFH8Q/companies/01JWAQF1G96E0SE9XHXSFGHNWW/jobs/01K99Y99X89H2DC588AZJ2J6RV/user-profiles/01K9VHKJS36RQ3P39BZPW2E43Z.pdf" #1
     # path= r"companies/01HZM77Q7XWBW58CH8NF3WFWT2/bulk-cvs/01JJE6VEEGAPH1QNCC7E22118A/01JJE6VEV1JRQ424RMJNXYVEN3.pdf" #3
     # path = r"users/01038d8a-80c1-7018-fd41-bf83638314b4/resumes/01JW1CW2XX2N4THW5376VDX6EB.pdf" #2
     # s3_bucket_name = "worko-app-dev"
     # s3_bucket_name = "worko-corporate-dev"
-
+    Doc_ID = event.get("agencyUserSubmissionId","")
     s3_bucket_name = event.get("cvAwsS3BucketName")
     cvAwsS3FilePath= event.get("cvAwsS3FilePath")
     cvAwsS3FileName= event.get("cvAwsS3FileName")
@@ -764,8 +768,10 @@ def lambda_handler(event, context):
 
     #get cv pdf from s3
     # if s3_bucket_name=="worko-app-dev":
-    key = cvAwsS3FilePath + cvAwsS3FileName
+    key = cvAwsS3FilePath + '/' + cvAwsS3FileName
     s3_client = boto3.client('s3')
+    print("s3_bucket_name",s3_bucket_name)
+    print("key",key)
     response = s3_client.get_object(Bucket=s3_bucket_name, Key=key)
     processed_text,links_from_pdf = extract_text_from_pdf(response['Body'].read()) # add code for image based cv too
     print(str(processed_text)[:100],"...")
@@ -954,19 +960,19 @@ def lambda_handler(event, context):
             f"- Omit detail field if heading itself is self-explanatory.\n"
         )
 
-    completion_text_rejection = invoke_model_with_backoff_OpenAI(prompt,Task= "Rejection for 1 <= overall_matching_score < 70:" )
+        completion_text_rejection = invoke_model_with_backoff_OpenAI(prompt,Task= "Rejection for 1 <= overall_matching_score < 70:" )
 
-    completion_text_rejection_for_candidate = completion_text_rejection.get("feedback_Candidate")
-    completion_text_rejection= completion_text_rejection.get("feedback_Recruiter")
-    
+        completion_text_rejection_for_candidate = completion_text_rejection.get("feedback_Candidate")
+        completion_text_rejection= completion_text_rejection.get("feedback_Recruiter")
+        
 
-    completion_text_rejection = json.dumps(completion_text_rejection)        ### make it string again to store in db
-    completion_text_rejection_for_candidate = json.dumps(completion_text_rejection_for_candidate)
+        completion_text_rejection = json.dumps(completion_text_rejection)        ### make it string again to store in db
+        completion_text_rejection_for_candidate = json.dumps(completion_text_rejection_for_candidate)
 
-    print_completion_text(f"rjection feedback for Recruiter {completion_text_rejection}")
-    print_completion_text(f"rjection feedback for Candidate {completion_text_rejection_for_candidate}")
-    rejection_feedback = completion_text_rejection
-    rejectionFeedbackBySystemForApplicant = completion_text_rejection_for_candidate
+        print_completion_text(f"rjection feedback for Recruiter {completion_text_rejection}")
+        print_completion_text(f"rjection feedback for Candidate {completion_text_rejection_for_candidate}")
+        rejection_feedback = completion_text_rejection
+        rejectionFeedbackBySystemForApplicant = completion_text_rejection_for_candidate
 
 
     if overall_matching_score >= 40:
@@ -1622,6 +1628,62 @@ def lambda_handler(event, context):
 
     if partition_key_value:
         Registered_user_analysis(jobs_id,jdItem,jdItem_extracted,partition_key_value,processed_text)
+    # update data in firstore
+
+    current_datetime = datetime.now()
+
+    # Convert it to an ISO 8601 formatted string
+    iso_string = current_datetime.isoformat()
+
+    actionByCorporateUserId = event.get("actionByCorporateUserId","")
+    actionByUserId = event.get("agencyUserSubmissionId","")
+    rejectionFeedbackBySystem = rejection_feedback
+    updated_data = { "cvExtract":"",
+      "jdMatchErrorCode": "200",
+      "jdMatchErrorDesc": "200",
+      "matchingScore": int(overall_matching_score),
+      "rejectionFeedbackBySystemForApplicant":rejectionFeedbackBySystemForApplicant,
+      "updatedByCorporateUserId": "",
+      "scoreDetailsForApplicant":scoreDetailsForApplicant,
+      "scoreDetails":scoreDetails,
+      "emailFeedback":emailFeedback,
+
+      "updatedAt": iso_string,
+      "updatedByCorporateUserId": actionByCorporateUserId,
+      "updatedByUserId": actionByUserId,
+      "isFindMatchingScoreInitiated": True,
+    }
+      
+
+#       {
+#    updatedAt: dateHelperObj.getISODate(),
+#    updatedByCorporateUserId: actionByCorporateUserId,
+#    updatedByUserId: actionByUserId,
+#    isFindMatchingScoreInitiated: true,
+
+#     matchingScoreDetails: {
+#       cvExtract?: string;
+#       jdMatchErrorCode?: number;
+#       jdMatchErrorDesc?: string;
+#       matchingScore?: number;
+#       checkEXPdata?: object;
+#       rejectCTCAndEXP?: boolean;
+#       rejectionFeedbackBySystem?: string;
+#       rejectionFeedbackBySystemForApplicant?: string;
+#       scoreDetails?: string;
+#       scoreDetailsForApplicant?: string;
+#       scoreFetchedDate?: string;
+#       emailFeedback?: string;
+#    };
+
+    #   "checkEXPdata": ,
+    #   "rejectCTCAndEXP": }
+
+
+    DBManager = FirestoreManager()
+    collection_name = "agencyUserSubmissions" 
+    DBManager.update_firestore_document_with_scoring_data(collection_name, Doc_ID,updated_data)
+
     return {
         "statusCode": 200,
         # "body": json.dumps("Process completed successfully.")
