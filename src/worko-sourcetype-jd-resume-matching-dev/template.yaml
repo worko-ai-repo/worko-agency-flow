@@ -58,7 +58,6 @@ Resources:
       ContentUri: layer/
       CompatibleRuntimes:
         - python3.10
-      RetentionPolicy: Delete
     Metadata:
       BuildMethod: python3.10
 

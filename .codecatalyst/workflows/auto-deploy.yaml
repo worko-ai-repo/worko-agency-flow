@@ -26,14 +26,54 @@ Actions:
             echo "Checking AWS caller identity"
             aws sts get-caller-identity --region $AWS_REGION || true
             cd src/worko-sourcetype-jd-resume-matching-dev
-            echo "Building SAM application"
+            echo "========================================"
+            echo "STEP 1: Verifying directory structure"
+            echo "========================================"
+            pwd
+            ls -la
+            echo ""
+            echo "========================================"
+            echo "STEP 2: Checking template.yaml exists"
+            echo "========================================"
+            cat template.yaml | head -20
+            echo ""
+            echo "========================================"
+            echo "STEP 3: Building SAM application"
+            echo "========================================"
             sam build --use-container
-            echo "Listing build output"
+            BUILD_EXIT_CODE=$?
+            echo "Build exit code: $BUILD_EXIT_CODE"
+            if [ $BUILD_EXIT_CODE -ne 0 ]; then
+              echo "ERROR: SAM build failed with exit code $BUILD_EXIT_CODE"
+              exit 1
+            fi
+            echo ""
+            echo "========================================"
+            echo "STEP 4: Verifying build output"
+            echo "========================================"
             ls -la .aws-sam/build || true
-            echo "Validating template"
-            aws cloudformation validate-template --template-body file://.aws-sam/build/template.yaml --region ap-south-1 || true
-            sam validate --template .aws-sam/build/template.yaml || true
-            echo "Deploying to CloudFormation"
+            echo ""
+            echo "========================================"
+            echo "STEP 5: Validating built template"
+            echo "========================================"
+            aws cloudformation validate-template --template-body file://.aws-sam/build/template.yaml --region ap-south-1
+            VALIDATE_EXIT_CODE=$?
+            echo "Validation exit code: $VALIDATE_EXIT_CODE"
+            if [ $VALIDATE_EXIT_CODE -ne 0 ]; then
+              echo "ERROR: Template validation failed"
+              echo "Template content:"
+              cat .aws-sam/build/template.yaml
+              exit 1
+            fi
+            echo ""
+            echo "========================================"
+            echo "STEP 6: SAM template validation"
+            echo "========================================"
+            sam validate --template .aws-sam/build/template.yaml
+            echo ""
+            echo "========================================"
+            echo "STEP 7: Deploying to CloudFormation"
+            echo "========================================"
             sam deploy --debug \
               --template-file .aws-sam/build/template.yaml \
               --stack-name worko-sourcetype-jd-resume-matching-dev-stack \
@@ -42,14 +82,32 @@ Actions:
               --parameter-overrides Environment=dev \
               --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
               --no-confirm-changeset \
-              --no-fail-on-empty-changeset || {
-                echo "sam deploy failed - dumping CloudFormation events for diagnosis"
-                echo "=== Recent Stack Events ==="
-                aws cloudformation describe-stack-events --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 --max-items 50 || true
-                echo "=== List Change Sets ==="
-                aws cloudformation list-change-sets --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
-                exit 1
-              }
+              --no-fail-on-empty-changeset
+            DEPLOY_EXIT_CODE=$?
+            echo ""
+            echo "========================================"
+            echo "Deploy exit code: $DEPLOY_EXIT_CODE"
+            echo "========================================"
+            if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+              echo "ERROR: Deployment failed with exit code $DEPLOY_EXIT_CODE"
+              echo ""
+              echo "=== Fetching CloudFormation Stack Events ==="
+              aws cloudformation describe-stack-events --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 --max-items 20 || true
+              echo ""
+              echo "=== Fetching Change Sets ==="
+              aws cloudformation list-change-sets --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 || true
+              echo ""
+              echo "=== Describing Latest Change Set ==="
+              LATEST_CS=$(aws cloudformation list-change-sets --stack-name worko-sourcetype-jd-resume-matching-dev-stack --region ap-south-1 --query 'Summaries[0].ChangeSetName' --output text 2>/dev/null || echo "")
+              if [ ! -z "$LATEST_CS" ] && [ "$LATEST_CS" != "None" ]; then
+                aws cloudformation describe-change-set --stack-name worko-sourcetype-jd-resume-matching-dev-stack --change-set-name "$LATEST_CS" --region ap-south-1 || true
+              fi
+              exit 1
+            fi
+            echo ""
+            echo "========================================"
+            echo "SUCCESS: Deployment completed"
+            echo "========================================"
     Environment:
       Name: dev
     Compute:
