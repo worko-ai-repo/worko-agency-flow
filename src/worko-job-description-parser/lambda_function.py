@@ -21,7 +21,8 @@ import requests
 import google.auth.transport.requests
 from google.oauth2 import service_account
 
-def get_secret(self, secret_name):
+def get_secret(secret_name):
+    secrets_client = boto3.client('secretsmanager', region_name='ap-south-1')
     """
     Retrieve individual secrets from AWS Secrets Manager using the get_secret_value API.
     This function assumes the stack mentioned in the source code README has been successfully deployed.
@@ -31,20 +32,31 @@ def get_secret(self, secret_name):
     :type secret_name: str
     """
     try:
-        get_secret_value_response = self.client.get_secret_value(
-            SecretId=secret_name
-        )
-        # logging.info("Secret retrieved successfully.")
-        return get_secret_value_response["SecretString"]
-    except self.client.exceptions.ResourceNotFoundException:
-        msg = f"The requested secret {secret_name} was not found."
-        # logger.info(msg)
-        return msg
-    except Exception as e:
-        # logger.error(f"An unknown error occurred: {str(e)}.")
-        raise
+        response = secrets_client.get_secret_value(SecretId=secret_name)
+        secret_value = response['SecretString']
+        
+        # Try to parse as JSON, fallback to string
+        try:
+            secret_data = json.loads(secret_value)
+        except json.JSONDecodeError:
+            secret_data = secret_value
+        return secret_data
+        # return {
+        #     "statusCode": 200,
+        #     "body": json.dumps({
+        #         "secret_name": secret_name,
+        #         "secret_value": secret_data
+        #     })
+        # }
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'ResourceNotFoundException':
+            return {
+                "statusCode": 404,
+                "body": json.dumps({"error": f"Secret '{secret_name}' not found"})
+            }
 
-def call_GCP_models(prompt, want_json = True,max_try_for_json=3):
+def call_GCP_models(prompt, service_account_info, want_json = True,max_try_for_json=3):
+# def call_GCP_models(prompt, want_json = True,max_try_for_json=3):
     # 1. Service account JSON path
     # SERVICE_ACCOUNT_FILE = r"C:\Users\Administrator\Desktop\worko_working\worko_code_chainged_files\vertex-sa.json"
 
@@ -53,9 +65,6 @@ def call_GCP_models(prompt, want_json = True,max_try_for_json=3):
     #     service_account_info,
     #     scopes=["https://www.googleapis.com/auth/cloud-platform"]
     # )
-
-
-    service_account_info = get_secret("GCP-secrect")
 
     credentials = service_account.Credentials.from_service_account_info(
     service_account_info,
@@ -75,6 +84,65 @@ def call_GCP_models(prompt, want_json = True,max_try_for_json=3):
         "Authorization": f"Bearer {credentials.token}",
         "Content-Type": "application/json"
     }
+
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ],
+        "generationConfig": {
+            "maxOutputTokens": 5000,
+            "temperature": 0.7
+        }
+    }
+
+    # 5. Make API call
+    try:
+        if not want_json:
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()  # Raise exception for bad status codes
+            result = response.json()
+            
+            inpute = result["usageMetadata"]["promptTokenCount"]
+            output = result["usageMetadata"]["candidatesTokenCount"] + result["usageMetadata"]["thoughtsTokenCount"]
+            print("inpute tokens:- ",inpute,"Output tokens",output)
+            response = result['candidates'][0]['content']['parts'][0]['text']
+            print(response)
+            return response
+
+        if want_json == True:
+            for attempt in range(max_try_for_json):
+                try:
+                    response = requests.post(url, headers=headers, json=payload)
+                    response.raise_for_status()  # Raise exception for bad status codes
+                    result = response.json()
+
+                    inpute = result["usageMetadata"]["promptTokenCount"]
+                    output = result["usageMetadata"]["candidatesTokenCount"] + result["usageMetadata"]["thoughtsTokenCount"]
+                    print("inpute tokens:- ",inpute,"Output tokens",output)
+
+                    response = result['candidates'][0]['content']['parts'][0]['text']
+                    response = response.strip().removeprefix("```json").removesuffix("```").strip()
+                    return json.loads(response)
+                except Exception as e:
+                    remaining = max_try_for_json - attempt - 1
+                    
+                    print(f"JSON parse failed. Retries left: {remaining}")
+                    print(response)
+                    print("Error:", e)
+                    time.sleep(5)
+                    if remaining == 0:
+                        raise
+        else:
+            return response
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        print(f"Response: {response.usageMetadata}")
+
 
 def invoke_model(prompt):
     try:
@@ -286,8 +354,14 @@ def lambda_handler(event, context):
     
         )
 
+    secret_name = "GCP-secrect"
+    GCP_secret = get_secret(secret_name)
+    print("GCP_secret",GCP_secret)
+    response =  call_GCP_models(prompt,GCP_secret)
     # response = invoke_model(prompt)
-    response =  call_GCP_models(prompt)
+
+
+    
     end_time = time.time()
     print(f"step 2 invoked ai and got response time took :- {end_time-start_time}")
 

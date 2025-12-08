@@ -50,6 +50,10 @@ Resources:
                   - secretsmanager:GetSecretValue
                   - secretsmanager:DescribeSecret
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                Resource: "*"
 
   PythonDependenciesLayer:
     Type: AWS::Serverless::LayerVersion
