@@ -5,8 +5,6 @@ Triggers:
   - Type: PUSH
     Branches:
       - main
-    FilePaths:
-      - src/worko-job-description-parser
 
 Actions:
   BuildAndDeploy:
