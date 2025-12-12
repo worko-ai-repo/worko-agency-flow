@@ -10,7 +10,7 @@ Parameters:
 
 Globals:
   Function:
-    Timeout: 180
+    Timeout: 120
     MemorySize: 256
     Runtime: python3.10
 
