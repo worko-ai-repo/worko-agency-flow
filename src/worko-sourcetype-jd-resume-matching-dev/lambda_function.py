@@ -1756,7 +1756,7 @@ def lambda_handler(event, context):
             "body": json.dumps({"score": float(overall_matching_score), "rejection_feedback": rejection_feedback, "scoreDetails": scoreDetails, "scoreDetailsForApplicant": scoreDetailsForApplicant, "rejectionFeedbackBySystemForApplicant": rejectionFeedbackBySystemForApplicant})
         }
     except Exception as e:
-        print("Erroe occured :-  ",e )
+        pritn("Erroe occured :-  ",e )
         updated_data = { "cvExtract":"",
         "jdMatchErrorCode": 400,
         "jdMatchErrorDesc": e,
