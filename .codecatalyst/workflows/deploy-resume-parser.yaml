@@ -27,7 +27,7 @@ Actions:
               STACK_STATUS=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $AWS_REGION --query 'Stacks[0].StackStatus' --output text)
               echo "Stack status: $STACK_STATUS"
               
-              if [[ "$STACK_STATUS" == *"ROLLBACK_FAILED"* ]] || [[ "$STACK_STATUS" == *"FAILED"* ]]; then
+              if [[ "$STACK_STATUS" == *"ROLLBACK_FAILED"* ]] || [[ "$STACK_STATUS" == *"FAILED"* ]] || [[ "$STACK_STATUS" == *"UPDATE_ROLLBACK_FAILED"* ]]; then
                 echo "Stack is in failed state, deleting..."
                 aws cloudformation delete-stack --stack-name $STACK_NAME --region $AWS_REGION
                 echo "Waiting for stack deletion..."
@@ -99,7 +99,9 @@ Actions:
                 RUNTIME=$(cat $CURRENT_CONFIG | jq -r '.Runtime')
                 TIMEOUT=$(cat $CURRENT_CONFIG | jq -r '.Timeout')
                 MEMORY=$(cat $CURRENT_CONFIG | jq -r '.MemorySize')
-                ENV_VARS=$(cat $CURRENT_CONFIG | jq -r '.Environment.Variables // {}')
+                
+                # Extract environment variables properly
+                ENV_VARS_JSON=$(cat $CURRENT_CONFIG | jq -c '.Environment.Variables // {}')
                 
                 # Recreate Lambda function with backup
                 aws lambda create-function \
@@ -110,7 +112,7 @@ Actions:
                   --zip-file fileb://$BACKUP_FILE \
                   --timeout $TIMEOUT \
                   --memory-size $MEMORY \
-                  --environment Variables="$ENV_VARS" \
+                  --environment Variables="$ENV_VARS_JSON" \
                   --region $AWS_REGION || true
                 
                 echo "Rollback completed - previous Lambda function restored"
