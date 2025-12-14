@@ -19,7 +19,7 @@ Actions:
             export AWS_REGION=ap-south-1
             export AWS_DEFAULT_REGION=ap-south-1
             STACK_NAME="resume-parser-dev-stack"
-            FUNCTION_NAME="resume-parser-dev"
+            FUNCTION_NAME="resume-parser"
             
             # Store current version for rollback
             echo "Checking for existing deployment..."

@@ -75,7 +75,7 @@ Resources:
   ResumeParserFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "resume-parser-${Environment}"
+      FunctionName: "resume-parser"
       CodeUri: ./
       Handler: lambda_function.lambda_handler
       Role: !GetAtt ResumeParserRole.Arn

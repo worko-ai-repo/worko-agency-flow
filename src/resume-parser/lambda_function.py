@@ -17,7 +17,7 @@ import base64
 import uuid
 sqs = boto3.client('sqs')
 # newly deployed
-# newly deployed
+
 
 # Initialize the AWS service clients
 dynamodb = boto3.resource('dynamodb')
