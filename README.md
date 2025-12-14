@@ -34,6 +34,11 @@ worko-ai-lambda/
    - Stack: `worko-sourcetype-jd-resume-matching-dev-stack`
    - Function: `worko-sourcetype-jd-resume-matching-dev`
 
+2. **resume-parser**
+   - Stack: `resume-parser-dev-stack`
+   - Function: `resume-parser`
+   - **Advanced Rollback**: Automatic backup and restore on deployment failure
+
 *Additional Lambda functions can be added later with the same structure.*
 
 ---
@@ -94,6 +99,36 @@ aws lambda invoke \
 
 ---
 
+## 🔄 Advanced Deployment Features
+
+### Resume Parser - Backup & Rollback System
+The `resume-parser` Lambda includes advanced deployment safety:
+
+1. **Pre-deployment Backup**
+   - Downloads current function code and configuration
+   - Stores backup locally during deployment
+
+2. **Clean Deployment**
+   - Deletes existing function to avoid conflicts
+   - Deploys fresh version with new code
+
+3. **Automatic Rollback**
+   - If deployment fails, automatically restores previous version
+   - Recreates Lambda with original code, configuration, and environment variables
+   - Ensures zero-downtime recovery
+
+### Rollback Process
+```bash
+# Automatic rollback includes:
+- Function code restoration
+- IAM role restoration  
+- Runtime and handler restoration
+- Memory and timeout restoration
+- Environment variables restoration
+```
+
+---
+
 ## ✅ Benefits
 
 - **Independent Deployments**: Change one Lambda without affecting others
@@ -101,6 +136,7 @@ aws lambda invoke \
 - **Isolated Resources**: Each Lambda has its own permissions and dependencies
 - **Scalable Architecture**: Easy to add new Lambda functions
 - **Cost Efficient**: No unnecessary deployments
+- **Deployment Safety**: Automatic backup and rollback for critical functions
 
 ---
 
