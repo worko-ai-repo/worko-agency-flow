@@ -12,7 +12,7 @@ from decimal import Decimal
 from typing import List, Tuple, Dict, Any, Optional, Union
 from boto3.dynamodb.conditions import Key, Attr
 import re
-# adding changes to test
+# newly deployed
 dynamodb = boto3.resource('dynamodb')
 from google.cloud import firestore
 from google.oauth2 import service_account
@@ -1756,7 +1756,7 @@ def lambda_handler(event, context):
             "body": json.dumps({"score": float(overall_matching_score), "rejection_feedback": rejection_feedback, "scoreDetails": scoreDetails, "scoreDetailsForApplicant": scoreDetailsForApplicant, "rejectionFeedbackBySystemForApplicant": rejectionFeedbackBySystemForApplicant})
         }
     except Exception as e:
-        pritn("Erroe occured :-  ",e )
+        print("Erroe occured :-  ",e )
         updated_data = { "cvExtract":"",
         "jdMatchErrorCode": 400,
         "jdMatchErrorDesc": e,
