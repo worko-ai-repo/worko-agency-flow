@@ -21,26 +21,27 @@ Actions:
             STACK_NAME="resume-parser-dev-stack"
             FUNCTION_NAME="resume-parser"
             
-            # Delete existing stack if it exists
-            echo "Checking for existing stack..."
-            if aws cloudformation describe-stacks --stack-name $STACK_NAME --region $AWS_REGION 2>/dev/null; then
-              echo "Deleting existing stack: $STACK_NAME"
-              aws cloudformation delete-stack --stack-name $STACK_NAME --region $AWS_REGION
-              echo "Waiting for stack deletion to complete..."
-              aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME --region $AWS_REGION
-              echo "Stack deleted successfully"
-            else
-              echo "No existing stack found"
-            fi
+            # Backup current Lambda function for rollback
+            echo "Backing up current Lambda function..."
+            BACKUP_FILE="/tmp/lambda-backup.zip"
+            CURRENT_CONFIG="/tmp/lambda-config.json"
             
-            # Store current version for rollback
-            echo "Checking for existing deployment..."
-            CURRENT_VERSION=""
             if aws lambda get-function --function-name $FUNCTION_NAME --region $AWS_REGION 2>/dev/null; then
-              CURRENT_VERSION=$(aws lambda get-function --function-name $FUNCTION_NAME --region $AWS_REGION --query 'Configuration.Version' --output text)
-              echo "Current version: $CURRENT_VERSION"
+              echo "Lambda function exists, creating backup..."
+              
+              # Download current function code
+              DOWNLOAD_URL=$(aws lambda get-function --function-name $FUNCTION_NAME --region $AWS_REGION --query 'Code.Location' --output text)
+              curl -o $BACKUP_FILE "$DOWNLOAD_URL"
+              
+              # Save current configuration
+              aws lambda get-function-configuration --function-name $FUNCTION_NAME --region $AWS_REGION > $CURRENT_CONFIG
+              
+              echo "Backup completed. Deleting existing Lambda function..."
+              aws lambda delete-function --function-name $FUNCTION_NAME --region $AWS_REGION
+              
+              echo "Lambda function deleted successfully"
             else
-              echo "No existing deployment found"
+              echo "No existing Lambda function found"
             fi
             
             cd src/resume-parser
@@ -73,20 +74,33 @@ Actions:
             if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
               echo "ERROR: Deployment failed with exit code $DEPLOY_EXIT_CODE"
               
-              # Rollback logic
-              if [ ! -z "$CURRENT_VERSION" ] && [ "$CURRENT_VERSION" != "None" ]; then
-                echo "Rolling back to previous version: $CURRENT_VERSION"
+              # Rollback logic - restore previous Lambda function
+              if [ -f "$BACKUP_FILE" ] && [ -f "$CURRENT_CONFIG" ]; then
+                echo "Rolling back to previous Lambda function..."
                 
-                # Update function code to previous version
-                aws lambda update-function-code \
+                # Extract configuration from backup
+                ROLE_ARN=$(cat $CURRENT_CONFIG | jq -r '.Role')
+                HANDLER=$(cat $CURRENT_CONFIG | jq -r '.Handler')
+                RUNTIME=$(cat $CURRENT_CONFIG | jq -r '.Runtime')
+                TIMEOUT=$(cat $CURRENT_CONFIG | jq -r '.Timeout')
+                MEMORY=$(cat $CURRENT_CONFIG | jq -r '.MemorySize')
+                ENV_VARS=$(cat $CURRENT_CONFIG | jq -r '.Environment.Variables // {}')
+                
+                # Recreate Lambda function with backup
+                aws lambda create-function \
                   --function-name $FUNCTION_NAME \
-                  --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
-                  --s3-key $(aws lambda get-function --function-name $FUNCTION_NAME --region $AWS_REGION --query 'Code.Location' --output text | sed 's/.*\///') \
+                  --runtime $RUNTIME \
+                  --role $ROLE_ARN \
+                  --handler $HANDLER \
+                  --zip-file fileb://$BACKUP_FILE \
+                  --timeout $TIMEOUT \
+                  --memory-size $MEMORY \
+                  --environment Variables="$ENV_VARS" \
                   --region $AWS_REGION || true
                 
-                echo "Rollback completed to version: $CURRENT_VERSION"
+                echo "Rollback completed - previous Lambda function restored"
               else
-                echo "No previous version to rollback to"
+                echo "No backup found - cannot rollback"
               fi
               
               echo "Fetching CloudFormation Stack Events..."
