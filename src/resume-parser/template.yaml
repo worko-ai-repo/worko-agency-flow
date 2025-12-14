@@ -64,7 +64,7 @@ Resources:
   PythonDependenciesLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: !Sub "worko-resume-parser-deps-${Environment}"
+      LayerName: !Sub "resume-parser-deps-${Environment}"
       Description: Python dependencies for worko resume parser lambda
       ContentUri: layer/
       CompatibleRuntimes:
@@ -75,7 +75,7 @@ Resources:
   ResumeParserFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "worko-resume-parser-${Environment}"
+      FunctionName: !Sub "resume-parser-${Environment}"
       CodeUri: ./
       Handler: lambda_function.lambda_handler
       Role: !GetAtt ResumeParserRole.Arn

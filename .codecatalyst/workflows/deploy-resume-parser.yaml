@@ -18,8 +18,8 @@ Actions:
             echo "=== Resume Parser Lambda Deployment with Rollback ===" 
             export AWS_REGION=ap-south-1
             export AWS_DEFAULT_REGION=ap-south-1
-            STACK_NAME="worko-resume-parser-dev-stack"
-            FUNCTION_NAME="worko-resume-parser-dev"
+            STACK_NAME="resume-parser-dev-stack"
+            FUNCTION_NAME="resume-parser-dev"
             
             # Store current version for rollback
             echo "Checking for existing deployment..."
