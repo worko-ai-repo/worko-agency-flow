@@ -542,8 +542,8 @@ def lambda_handler(event, context):
     GCP_secret_name = "GCP-secrect"
     credentials = get_secret(GCP_secret_name)
 
-    content = call_sonnet4(prompt=dynamic_prompt,creds = credentials,max_json_try=3, want_json=True, system_prompt=prompt)
-    response = clean_and_load(content)
+    response = call_sonnet4(prompt=dynamic_prompt,creds = credentials,max_json_try=3, want_json=True, system_prompt=prompt)
+    # response = clean_and_load(content)
     end_time = time.time()
     print(f"step 2 invoked ai and got response time took :- {end_time-start_time}")
 

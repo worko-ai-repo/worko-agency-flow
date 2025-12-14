@@ -688,19 +688,43 @@ class FirestoreManager:
         return db
 
     def update_firestore_document_with_scoring_data(self,collection_name: str, doc_id: str,update_data,isFindMatchingScoreInProgress):
+        current_datetime = datetime.now()
+        # Convert it to an ISO 8601 formatted string
+        iso_string = current_datetime.isoformat()
+
 
         try:
-            if update_data:
-                doc_ref = self.db.collection(collection_name).document(doc_id)
-                doc_ref.update({
-                    # store as ISO string
+            if update_data :
+                updatedByUserId = update_data.get("updatedByUserId","")
+                updatedByCorporateUserId = update_data.get("updatedByCorporateUserId","")
+                matchingScoreDetails = update_data.get("matchingScoreDetails","")
+                
+                if updatedByCorporateUserId: #if you receive actionByCorporateUserId in payload then  updatedByCorporateUserId 
+                    doc_ref = self.db.collection(collection_name).document(doc_id)
+                    doc_ref.update({
+                        "matchingScoreDetails" : matchingScoreDetails,
+                        "updatedAt": iso_string,
+                        "updatedByCorporateUserId":updatedByCorporateUserId,
+                        "isFindMatchingScoreInProgress":isFindMatchingScoreInProgress
 
-                    "matchingScoreDetails" : update_data,
-                    "isFindMatchingScoreInProgress":isFindMatchingScoreInProgress
+                    })
+                    print(f"Updated Firestore document {doc_id} isFindMatchingScoreInProgress: False and update_data : {matchingScoreDetails}")
+                    return True
 
-                })
-                print(f"Updated Firestore document {doc_id} isFindMatchingScoreInProgress: False and update_data ")
-                return True
+                elif updatedByUserId: #if you receive actionByUserId in payload then  updatedByUserId 
+                    doc_ref = self.db.collection(collection_name).document(doc_id)
+                    doc_ref.update({
+                        # store as ISO string
+
+                        "matchingScoreDetails" : matchingScoreDetails,
+                        "updatedAt": iso_string,
+                        "updatedByUserId":updatedByUserId,
+                        "isFindMatchingScoreInProgress":isFindMatchingScoreInProgress
+
+                    })
+                    print(f"Updated Firestore document {doc_id} isFindMatchingScoreInProgress: False and update_data {matchingScoreDetails}")
+                    return True
+
             else:
                 doc_ref = self.db.collection(collection_name).document(doc_id)
                 doc_ref.update({
@@ -729,7 +753,7 @@ def lambda_handler(event, context):
     # path = r"users/01038d8a-80c1-7018-fd41-bf83638314b4/resumes/01JW1CW2XX2N4THW5376VDX6EB.pdf" #2
     # s3_bucket_name = "worko-app-dev"
     # s3_bucket_name = "worko-corporate-dev"
-
+    
     Doc_ID = event.get("agencyUserSubmissionId","")
     s3_bucket_name = event.get("cvAwsS3BucketName")
     cvAwsS3FilePath= event.get("cvAwsS3FilePath")
@@ -743,7 +767,9 @@ def lambda_handler(event, context):
     # Convert it to an ISO 8601 formatted string
     iso_string = current_datetime.isoformat()
     actionByCorporateUserId = event.get("actionByCorporateUserId","")
-    actionByUserId = event.get("agencyUserSubmissionId","")
+    actionByUserId = event.get("actionByUserId")
+    # actionByUserId = event.get("agencyUserSubmissionId","")
+
     DBManager = FirestoreManager()
     collection_name = "agencyUserSubmissions" 
     DBManager.update_firestore_document_with_scoring_data(collection_name, Doc_ID,"","")
@@ -1661,37 +1687,66 @@ def lambda_handler(event, context):
         # update data in firstore
 
 
-        rejectionFeedbackBySystem = rejection_feedback
-        if Rejection_object:
-            updated_data = { "cvExtract":"",
-            "jdMatchErrorCode": "200",
-            "jdMatchErrorDesc": "200",
-            "matchingScore": int(overall_matching_score),
-            "rejectionFeedbackBySystemForApplicant":rejectionFeedbackBySystemForApplicant,
-            "updatedByCorporateUserId": "",
-            "scoreDetailsForApplicant":scoreDetailsForApplicant,
-            "scoreDetails":scoreDetails,
-            "emailFeedback":emailFeedback,
-            "updatedAt": iso_string,
-            "updatedByCorporateUserId": actionByCorporateUserId,
-            "updatedByUserId": actionByUserId,
-            "rejectionObject":Rejection_object
-            }
-        else:
-            updated_data = { "cvExtract":"",
-            "jdMatchErrorCode": "200",
-            "jdMatchErrorDesc": "200",
-            "matchingScore": int(overall_matching_score),
-            "rejectionFeedbackBySystemForApplicant":rejectionFeedbackBySystemForApplicant,
-            "updatedByCorporateUserId": "",
-            "scoreDetailsForApplicant":scoreDetailsForApplicant,
-            "scoreDetails":scoreDetails,
-            "emailFeedback":emailFeedback,
-            "updatedAt": iso_string,
-            "updatedByCorporateUserId": actionByCorporateUserId,
-            "updatedByUserId": actionByUserId
-            }
-        
+        # rejectionFeedbackBySystem = rejection_feedback
+        if actionByCorporateUserId:
+            if Rejection_object:
+                updated_data = { "matchingScoreDetails": { "cvExtract":"",
+                
+                "jdMatchErrorCode":200,
+                "jdMatchErrorDesc": "",
+                "matchingScore": int(overall_matching_score),
+                "rejectionFeedbackBySystemForApplicant":rejection_feedback,
+                "scoreDetailsForApplicant":scoreDetailsForApplicant,
+                "scoreDetails":scoreDetails,
+                "emailFeedback":emailFeedback,
+                "rejectionObject":Rejection_object},
+                
+                "updatedByCorporateUserId": actionByCorporateUserId
+                }
+            else:
+                updated_data = { "matchingScoreDetails":{"cvExtract":"",
+                "jdMatchErrorCode":200,
+                "jdMatchErrorDesc": "",
+                "matchingScore": int(overall_matching_score),
+                "rejectionFeedbackBySystemForApplicant":rejection_feedback,
+                "scoreDetailsForApplicant":scoreDetailsForApplicant,
+                "scoreDetails":scoreDetails,
+                "emailFeedback":emailFeedback},
+
+                "updatedByCorporateUserId": actionByCorporateUserId,
+                }
+
+
+        elif actionByUserId:
+            if Rejection_object:
+                updated_data = { "matchingScoreDetails":{ "cvExtract":"",
+                "jdMatchErrorCode":200,
+                "jdMatchErrorDesc": "",
+                "matchingScore": int(overall_matching_score),
+                "rejectionFeedbackBySystemForApplicant":rejection_feedback,
+                "scoreDetailsForApplicant":scoreDetailsForApplicant,
+                "scoreDetails":scoreDetails,
+                "emailFeedback":emailFeedback,
+                "rejectionObject":Rejection_object
+                },
+                
+                "updatedByUserId": actionByUserId
+                
+                }
+            else:
+                updated_data = { "matchingScoreDetails":{"cvExtract":"",
+                "jdMatchErrorCode":200,
+                "jdMatchErrorDesc": "",
+                "matchingScore": int(overall_matching_score),
+                "rejectionFeedbackBySystemForApplicant":rejection_feedback,
+                "scoreDetailsForApplicant":scoreDetailsForApplicant,
+                "scoreDetails":scoreDetails,
+                "emailFeedback":emailFeedback
+                 },
+                
+                "updatedByUserId": actionByUserId
+                }
+            # "updatedAt": iso_string,
         
         DBManager.update_firestore_document_with_scoring_data(collection_name, Doc_ID,updated_data,False)
 
@@ -1701,19 +1756,16 @@ def lambda_handler(event, context):
             "body": json.dumps({"score": float(overall_matching_score), "rejection_feedback": rejection_feedback, "scoreDetails": scoreDetails, "scoreDetailsForApplicant": scoreDetailsForApplicant, "rejectionFeedbackBySystemForApplicant": rejectionFeedbackBySystemForApplicant})
         }
     except Exception as e:
-        pritn("Erroe occured :-  ",e )
+        print("Erroe occured :-  ",e )
         updated_data = { "cvExtract":"",
         "jdMatchErrorCode": 400,
+        "jdMatchErrorDesc": e,
         "matchingScore": int(-1),
         "updatedAt": iso_string,
         "updatedByCorporateUserId": actionByCorporateUserId,
         "updatedByUserId": actionByUserId,
         }
-        # "rejectionFeedbackBySystemForApplicant":rejectionFeedbackBySystemForApplicant,
-        # "updatedByCorporateUserId": "",
-        # "scoreDetailsForApplicant":scoreDetailsForApplicant,
-        # "scoreDetails":scoreDetails,
-        # "emailFeedback":emailFeedback,
+
         DBManager.update_firestore_document_with_scoring_data(collection_name, Doc_ID,updated_data,False)
         return {
             "statusCode": 400,

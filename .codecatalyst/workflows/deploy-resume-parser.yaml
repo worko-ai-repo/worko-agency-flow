@@ -1,0 +1,95 @@
+Name: DeployResumeParserLambda
+SchemaVersion: "1.0"
+
+Triggers:
+  - Type: PUSH
+    Branches:
+      - main
+    FilePaths:
+      - src/resume-parser/**
+
+Actions:
+  BuildAndDeploy:
+    Identifier: aws/build@v1
+    Inputs:
+      Sources:
+        - WorkflowSource
+    Configuration:
+      Steps:
+        - Run: |
+            echo "=== Resume Parser Lambda Deployment with Rollback ===" 
+            export AWS_REGION=ap-south-1
+            export AWS_DEFAULT_REGION=ap-south-1
+            STACK_NAME="worko-resume-parser-dev-stack"
+            FUNCTION_NAME="worko-resume-parser-dev"
+            
+            # Store current version for rollback
+            echo "Checking for existing deployment..."
+            CURRENT_VERSION=""
+            if aws lambda get-function --function-name $FUNCTION_NAME --region $AWS_REGION 2>/dev/null; then
+              CURRENT_VERSION=$(aws lambda get-function --function-name $FUNCTION_NAME --region $AWS_REGION --query 'Configuration.Version' --output text)
+              echo "Current version: $CURRENT_VERSION"
+            else
+              echo "No existing deployment found"
+            fi
+            
+            cd src/resume-parser
+            
+            echo "Building SAM application..."
+            sam build --use-container
+            BUILD_EXIT_CODE=$?
+            if [ $BUILD_EXIT_CODE -ne 0 ]; then
+              echo "ERROR: Build failed"
+              exit 1
+            fi
+            
+            echo "Validating template..."
+            aws cloudformation validate-template --template-body file://.aws-sam/build/template.yaml --region $AWS_REGION
+            
+            echo "Deploying to CloudFormation..."
+            sam deploy \
+              --template-file .aws-sam/build/template.yaml \
+              --stack-name $STACK_NAME \
+              --region $AWS_REGION \
+              --capabilities CAPABILITY_IAM \
+              --parameter-overrides Environment=dev \
+              --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
+              --on-failure ROLLBACK \
+              --no-confirm-changeset \
+              --no-fail-on-empty-changeset
+            
+            DEPLOY_EXIT_CODE=$?
+            
+            if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
+              echo "ERROR: Deployment failed with exit code $DEPLOY_EXIT_CODE"
+              
+              # Rollback logic
+              if [ ! -z "$CURRENT_VERSION" ] && [ "$CURRENT_VERSION" != "None" ]; then
+                echo "Rolling back to previous version: $CURRENT_VERSION"
+                
+                # Update function code to previous version
+                aws lambda update-function-code \
+                  --function-name $FUNCTION_NAME \
+                  --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
+                  --s3-key $(aws lambda get-function --function-name $FUNCTION_NAME --region $AWS_REGION --query 'Code.Location' --output text | sed 's/.*\///') \
+                  --region $AWS_REGION || true
+                
+                echo "Rollback completed to version: $CURRENT_VERSION"
+              else
+                echo "No previous version to rollback to"
+              fi
+              
+              echo "Fetching CloudFormation Stack Events..."
+              aws cloudformation describe-stack-events --stack-name $STACK_NAME --region $AWS_REGION --max-items 20 || true
+              exit 1
+            fi
+            
+            echo "SUCCESS: Resume Parser Lambda deployed successfully"
+            
+            # Verify deployment
+            NEW_VERSION=$(aws lambda get-function --function-name $FUNCTION_NAME --region $AWS_REGION --query 'Configuration.Version' --output text)
+            echo "New version deployed: $NEW_VERSION"
+    Environment:
+      Name: dev
+    Compute:
+      Type: EC2
