@@ -21,6 +21,18 @@ Actions:
             STACK_NAME="resume-parser-dev-stack"
             FUNCTION_NAME="resume-parser"
             
+            # Delete existing stack if it exists
+            echo "Checking for existing stack..."
+            if aws cloudformation describe-stacks --stack-name $STACK_NAME --region $AWS_REGION 2>/dev/null; then
+              echo "Deleting existing stack: $STACK_NAME"
+              aws cloudformation delete-stack --stack-name $STACK_NAME --region $AWS_REGION
+              echo "Waiting for stack deletion to complete..."
+              aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME --region $AWS_REGION
+              echo "Stack deleted successfully"
+            else
+              echo "No existing stack found"
+            fi
+            
             # Store current version for rollback
             echo "Checking for existing deployment..."
             CURRENT_VERSION=""
