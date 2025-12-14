@@ -5,8 +5,6 @@ Triggers:
   - Type: PUSH
     Branches:
       - main
-    FilePaths:
-      - src/resume-parser/**
 
 Actions:
   BuildAndDeploy:
