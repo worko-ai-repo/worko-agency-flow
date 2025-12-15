@@ -41,27 +41,15 @@ Actions:
               fi
             fi
             
-            # Backup current Lambda function for rollback
-            echo "Backing up current Lambda function..."
-            BACKUP_FILE="/tmp/lambda-backup.zip"
-            CURRENT_CONFIG="/tmp/lambda-config.json"
-            
+            # Check if Lambda function exists
+            echo "Checking if Lambda function exists..."
+            LAMBDA_EXISTS=false
             if aws lambda get-function --function-name $FUNCTION_NAME --region $AWS_REGION 2>/dev/null; then
-              echo "Lambda function exists, creating backup..."
-              
-              # Download current function code
-              DOWNLOAD_URL=$(aws lambda get-function --function-name $FUNCTION_NAME --region $AWS_REGION --query 'Code.Location' --output text)
-              curl -o $BACKUP_FILE "$DOWNLOAD_URL"
-              
-              # Save current configuration
-              aws lambda get-function-configuration --function-name $FUNCTION_NAME --region $AWS_REGION > $CURRENT_CONFIG
-              
-              echo "Backup completed. Deleting existing Lambda function..."
-              aws lambda delete-function --function-name $FUNCTION_NAME --region $AWS_REGION
-              
-              echo "Lambda function deleted successfully"
+              echo "Lambda function exists - will update"
+              LAMBDA_EXISTS=true
             else
-              echo "No existing Lambda function found"
+              echo "Lambda function does not exist - will create"
+              LAMBDA_EXISTS=false
             fi
             
             cd src/worko-resume-parser
@@ -78,53 +66,35 @@ Actions:
             aws cloudformation validate-template --template-body file://.aws-sam/build/template.yaml --region $AWS_REGION
             
             echo "Deploying to CloudFormation..."
-            sam deploy \
-              --template-file .aws-sam/build/template.yaml \
-              --stack-name $STACK_NAME \
-              --region $AWS_REGION \
-              --capabilities CAPABILITY_IAM \
-              --parameter-overrides Environment=$ENV \
-              --s3-bucket $S3_BUCKET_MANAGED \
-              --on-failure ROLLBACK \
-              --no-confirm-changeset \
-              --no-fail-on-empty-changeset
+            if [ "$LAMBDA_EXISTS" = true ]; then
+              echo "Updating existing Lambda function"
+              sam deploy \
+                --template-file .aws-sam/build/template.yaml \
+                --stack-name $STACK_NAME \
+                --region $AWS_REGION \
+                --capabilities CAPABILITY_IAM \
+                --parameter-overrides Environment=$ENV \
+                --s3-bucket $S3_BUCKET_MANAGED \
+                --no-confirm-changeset \
+                --no-fail-on-empty-changeset
+            else
+              echo "Creating new Lambda function"
+              sam deploy \
+                --template-file .aws-sam/build/template.yaml \
+                --stack-name $STACK_NAME \
+                --region $AWS_REGION \
+                --capabilities CAPABILITY_IAM \
+                --parameter-overrides Environment=$ENV \
+                --s3-bucket $S3_BUCKET_MANAGED \
+                --on-failure DELETE \
+                --no-confirm-changeset \
+                --no-fail-on-empty-changeset
+            fi
             
             DEPLOY_EXIT_CODE=$?
             
             if [ $DEPLOY_EXIT_CODE -ne 0 ]; then
               echo "ERROR: Deployment failed with exit code $DEPLOY_EXIT_CODE"
-              
-              # Rollback logic - restore previous Lambda function
-              if [ -f "$BACKUP_FILE" ] && [ -f "$CURRENT_CONFIG" ]; then
-                echo "Rolling back to previous Lambda function..."
-                
-                # Extract configuration from backup
-                ROLE_ARN=$(cat $CURRENT_CONFIG | jq -r '.Role')
-                HANDLER=$(cat $CURRENT_CONFIG | jq -r '.Handler')
-                RUNTIME=$(cat $CURRENT_CONFIG | jq -r '.Runtime')
-                TIMEOUT=$(cat $CURRENT_CONFIG | jq -r '.Timeout')
-                MEMORY=$(cat $CURRENT_CONFIG | jq -r '.MemorySize')
-                
-                # Extract environment variables properly
-                ENV_VARS_JSON=$(cat $CURRENT_CONFIG | jq -c '.Environment.Variables // {}')
-                
-                # Recreate Lambda function with backup
-                aws lambda create-function \
-                  --function-name $FUNCTION_NAME \
-                  --runtime $RUNTIME \
-                  --role $ROLE_ARN \
-                  --handler $HANDLER \
-                  --zip-file fileb://$BACKUP_FILE \
-                  --timeout $TIMEOUT \
-                  --memory-size $MEMORY \
-                  --environment Variables="$ENV_VARS_JSON" \
-                  --region $AWS_REGION || true
-                
-                echo "Rollback completed - previous Lambda function restored"
-              else
-                echo "No backup found - cannot rollback"
-              fi
-              
               echo "Fetching CloudFormation Stack Events..."
               aws cloudformation describe-stack-events --stack-name $STACK_NAME --region $AWS_REGION --max-items 20 || true
               exit 1
