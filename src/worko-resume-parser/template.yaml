@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Worko AI Lambda - Intelligent Processing Function
+Description: Worko AI Lambda - Resume Parser Function
 
 Parameters:
   Environment:
@@ -10,12 +10,12 @@ Parameters:
 
 Globals:
   Function:
-    Timeout: 180
-    MemorySize: 256
+    Timeout: 900
+    MemorySize: 1024
     Runtime: python3.10
 
 Resources:
-  AgencyLambdaRole:
+  ResumeParserRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -36,11 +36,8 @@ Resources:
                 Action:
                   - s3:GetObject
                   - s3:ListBucket
-                Resource:
-                  - arn:aws:s3:::worko-app-dev/*
-                  - arn:aws:s3:::worko-app-dev
-                  - arn:aws:s3:::worko-s3-vector-bucket/*
-                  - arn:aws:s3:::worko-s3-vector-bucket
+                  - s3:PutObject
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - dynamodb:Query
@@ -48,53 +45,56 @@ Resources:
                   - dynamodb:PutItem
                   - dynamodb:UpdateItem
                   - dynamodb:Scan
-                Resource:
-                  - arn:aws:dynamodb:ap-south-1:*:table/worko
-                  - arn:aws:dynamodb:ap-south-1:*:table/worko/index/*
-                  - arn:aws:dynamodb:ap-south-1:*:table/worko-job-app
-                  - arn:aws:dynamodb:ap-south-1:*:table/worko-job-app/index/*
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - bedrock:InvokeModel
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
                 Resource: "*"
 
   PythonDependenciesLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: !Sub "worko-sourcetype-jd-resume-matching-deps-${Environment}"
-      Description: Python dependencies for worko sourcetype JD resume matching lambda
-      ContentUri: layers/python-deps/
+      LayerName: !Sub "resume-parser-deps-${Environment}"
+      Description: Python dependencies for worko resume parser lambda
+      ContentUri: layer/
       CompatibleRuntimes:
         - python3.10
-      RetentionPolicy: Delete
     Metadata:
       BuildMethod: python3.10
 
-  AgencyTestFunction:
+  ResumeParserFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "worko-sourcetype-jd-resume-matching-${Environment}"
-      CodeUri: src/
+      FunctionName: !Sub "resume-parser-${Environment}"
+      CodeUri: ./
       Handler: lambda_function.lambda_handler
-      Role: !GetAtt AgencyLambdaRole.Arn
+      Role: !GetAtt ResumeParserRole.Arn
       Layers:
         - !Ref PythonDependenciesLayer
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
-          S3_BUCKET_NAME: "worko-app-dev"
+          S3_BUCKET_NAME: !Sub "worko-app-${Environment}"
           DYNAMO_TABLE_NAME: "worko"
-          JOBS_DYNAMO_TABLE_NAME: "worko-job-app"
-          S3_VECTOR_BUCKET_NAME: "worko-s3-vector-bucket"
-          S3_VECTOR_INDEX_NAME: "collegelist-s3-vector-index"
           AZURE_OPENAI_ENDPOINT: "https://aif-wrk-dev-sin-01.openai.azure.com"
           AZURE_OPENAI_DEPLOYMENT: "gpt-4o"
           AZURE_OPENAI_API_KEY: "REDACTED_SECRET"
           AZURE_OPENAI_API_VERSION: "2025-01-01-preview"
 
+
 Outputs:
-  WorkoAILambdaFunctionArn:
-    Description: Worko AI Lambda Function ARN
-    Value: !GetAtt AgencyTestFunction.Arn
+  ResumeParserFunctionArn:
+    Description: Resume Parser Lambda Function ARN
+    Value: !GetAtt ResumeParserFunction.Arn
     Export:
-      Name: !Sub "${AWS::StackName}-WorkoAILambdaFunctionArn"
+      Name: !Sub "${AWS::StackName}-ResumeParserFunctionArn"

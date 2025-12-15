@@ -69,7 +69,7 @@ Resources:
   JobDescParserFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: "worko-job-description-parser"
+      FunctionName: !Sub "worko-job-description-parser-${Environment}"
       CodeUri: ./
       Handler: lambda_function.lambda_handler
       Role: !GetAtt JobDescParserLambdaRole.Arn
@@ -78,11 +78,11 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
-          S3_BUCKET_NAME: "worko-app-dev"
+          S3_BUCKET_NAME: !Sub "worko-app-${Environment}"
           DYNAMO_TABLE_NAME: "worko"
           JOBS_DYNAMO_TABLE_NAME: "worko-job-app"
           acc_type: "service_account"
-          project_id: "worko-dev"
+          project_id: !Sub "worko-${Environment}"
           private_key: "REDACTED_SECRET\n"
           client_email: "worko-gcp-firestore@worko-dev.iam.gserviceaccount.com"
           token_uri: "https://oauth2.googleapis.com/token"

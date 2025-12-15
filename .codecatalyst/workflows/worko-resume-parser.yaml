@@ -16,10 +16,15 @@ Actions:
       Steps:
         - Run: |
             echo "=== Resume Parser Lambda Deployment with Rollback ===" 
-            export AWS_REGION=ap-south-1
-            export AWS_DEFAULT_REGION=ap-south-1
-            STACK_NAME="resume-parser-dev-stack"
-            FUNCTION_NAME="resume-parser"
+            
+            # Load environment configuration
+            ENV=$(cat env-config.json | jq -r '.ENVIRONMENT')
+            export AWS_REGION=$(cat env-config.json | jq -r '.AWS_REGION')
+            export AWS_DEFAULT_REGION=$AWS_REGION
+            S3_BUCKET_MANAGED=$(cat env-config.json | jq -r '.S3_BUCKET_MANAGED')
+            
+            STACK_NAME="resume-parser-${ENV}-stack"
+            FUNCTION_NAME="resume-parser-${ENV}"
             
             # Delete broken stack if it exists
             echo "Checking for existing stack..."
@@ -78,8 +83,8 @@ Actions:
               --stack-name $STACK_NAME \
               --region $AWS_REGION \
               --capabilities CAPABILITY_IAM \
-              --parameter-overrides Environment=dev \
-              --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-mpwvaft0yfqx \
+              --parameter-overrides Environment=$ENV \
+              --s3-bucket $S3_BUCKET_MANAGED \
               --on-failure ROLLBACK \
               --no-confirm-changeset \
               --no-fail-on-empty-changeset

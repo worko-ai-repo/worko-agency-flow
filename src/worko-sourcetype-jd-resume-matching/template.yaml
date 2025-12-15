@@ -73,7 +73,7 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
-          S3_BUCKET_NAME: "worko-app-dev"
+          S3_BUCKET_NAME: !Sub "worko-app-${Environment}"
           DYNAMO_TABLE_NAME: "worko"
           JOBS_DYNAMO_TABLE_NAME: "worko-job-app"
           S3_VECTOR_BUCKET_NAME: "worko-s3-vector-bucket"
@@ -83,7 +83,7 @@ Resources:
           AZURE_OPENAI_API_KEY: "REDACTED_SECRET"
           AZURE_OPENAI_API_VERSION: "2025-01-01-preview"
           acc_type: "service_account"
-          project_id: "worko-dev"
+          project_id: !Sub "worko-${Environment}"
           private_key: "REDACTED_SECRET\n"
           client_email: "worko-gcp-firestore@worko-dev.iam.gserviceaccount.com"
           token_uri: "https://oauth2.googleapis.com/token"
