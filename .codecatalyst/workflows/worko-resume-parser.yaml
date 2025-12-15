@@ -26,6 +26,37 @@ Actions:
             STACK_NAME="worko-resume-parser-${ENV}-stack"
             FUNCTION_NAME="worko-resume-parser-${ENV}"
             
+            # ============================================================
+            # FORCE CLEANUP STEP (COMMENTED OUT) Run only in case of manual deployemnts so it will delete first
+            # ============================================================
+            # Uncomment this section ONLY when you need to:
+            # 1. Delete corrupted CloudFormation stacks
+            # 2. Remove manually deployed Lambda functions
+            # 3. Force a complete clean slate deployment
+            #
+            # WARNING: This will DELETE your Lambda and CloudFormation stack!
+            # ============================================================
+            
+            # echo "=== FORCE CLEANUP: Deleting corrupted resources ==="
+            # 
+            # # Delete manually deployed Lambda function if exists
+            # if aws lambda get-function --function-name $FUNCTION_NAME --region $AWS_REGION 2>/dev/null; then
+            #   echo "Deleting manually deployed Lambda function: $FUNCTION_NAME"
+            #   aws lambda delete-function --function-name $FUNCTION_NAME --region $AWS_REGION || true
+            #   echo "Lambda function deleted"
+            # fi
+            # 
+            # # Delete CloudFormation stack if exists (including corrupted ones)
+            # if aws cloudformation describe-stacks --stack-name $STACK_NAME --region $AWS_REGION 2>/dev/null; then
+            #   echo "Deleting CloudFormation stack: $STACK_NAME"
+            #   aws cloudformation delete-stack --stack-name $STACK_NAME --region $AWS_REGION
+            #   echo "Waiting for stack deletion..."
+            #   aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME --region $AWS_REGION || true
+            #   echo "Stack deleted successfully"
+            # fi
+            # 
+            # echo "Force cleanup completed"
+            
             # Delete broken stack if it exists
             echo "Checking for existing stack..."
             if aws cloudformation describe-stacks --stack-name $STACK_NAME --region $AWS_REGION 2>/dev/null; then
