@@ -539,7 +539,8 @@ def lambda_handler(event, context):
             )
 
     dynamic_prompt=f"Parse this JD:\n{job_desc}"
-    GCP_secret_name = "GCP-secrect"
+    # GCP_secret_name = "GCP-secrect"
+    GCP_secret_name = "GCP-firestore-secret-dev"
     credentials = get_secret(GCP_secret_name)
 
     response = call_sonnet4(prompt=dynamic_prompt,creds = credentials,max_json_try=3, want_json=True, system_prompt=prompt)

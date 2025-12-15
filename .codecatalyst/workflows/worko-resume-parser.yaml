@@ -23,8 +23,8 @@ Actions:
             export AWS_DEFAULT_REGION=$AWS_REGION
             S3_BUCKET_MANAGED=$(cat env-config.json | jq -r '.S3_BUCKET_MANAGED')
             
-            STACK_NAME="resume-parser-${ENV}-stack"
-            FUNCTION_NAME="resume-parser-${ENV}"
+            STACK_NAME="worko-resume-parser-${ENV}-stack"
+            FUNCTION_NAME="worko-resume-parser-${ENV}"
             
             # Delete broken stack if it exists
             echo "Checking for existing stack..."
@@ -64,7 +64,7 @@ Actions:
               echo "No existing Lambda function found"
             fi
             
-            cd src/resume-parser
+            cd src/worko-resume-parser
             
             echo "Building SAM application..."
             sam build --use-container

@@ -25,19 +25,19 @@ When you change the environment in `env-config.json`, these resources will autom
 ### Lambda Functions
 - `worko-sourcetype-jd-resume-matching-{ENV}`
 - `worko-job-description-parser-{ENV}`
-- `resume-parser-{ENV}`
+- `worko-resume-parser-{ENV}`
 - `worko-secret-manager-{ENV}`
 
 ### CloudFormation Stacks
 - `worko-sourcetype-jd-resume-matching-{ENV}-stack`
 - `worko-job-description-parser-{ENV}-stack`
-- `resume-parser-{ENV}-stack`
+- `worko-resume-parser-{ENV}-stack`
 - `worko-secret-manager-{ENV}-stack`
 
 ### Lambda Layers
 - `worko-sourcetype-jd-resume-matching-deps-{ENV}`
 - `worko-job-description-parser-deps-{ENV}`
-- `resume-parser-deps-{ENV}`
+- `worko-resume-parser-deps-{ENV}`
 - `worko-secret-manager-deps-{ENV}`
 
 ### S3 Buckets
